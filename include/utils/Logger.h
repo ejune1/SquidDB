@@ -40,7 +40,7 @@ class Logger {
 		void log(const LogLevel logLevel, const std::string);
 
 		LogLevel getLogLevel() const;
-		void setLogLevel(LogLevel logLevel);
+		void setLogLevel(const LogLevel logLevel);
 	
 	private:
 		struct LogItem {
@@ -56,7 +56,7 @@ class Logger {
 		Logger& operator=(const Logger&) = delete;
 
 		void run();
-		std::string logLevelString(LogLevel logLevel);
+		std::string logLevelString(const LogLevel logLevel) const;
 
 		LogMode m_logMode;
 		std::string m_filename;

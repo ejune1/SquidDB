@@ -104,7 +104,7 @@ Logger::LogLevel Logger::getLogLevel() const {
 	return m_logLevel;
 }
 
-void Logger::setLogLevel(Logger::LogLevel logLevel) {
+void Logger::setLogLevel(const Logger::LogLevel logLevel) {
 	m_logLevel = logLevel;
 }
 
@@ -149,7 +149,7 @@ void Logger::run() {
 	}
 }
 
-std::string Logger::logLevelString(Logger::LogLevel logLevel) {
+std::string Logger::logLevelString(const Logger::LogLevel logLevel) const {
 	switch (logLevel) {
 		case LogLevel::Trace: return "TRACE";
 		case LogLevel::Debug: return "DEBUG";
