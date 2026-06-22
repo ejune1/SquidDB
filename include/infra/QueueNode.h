@@ -34,6 +34,6 @@ class QueueNode {
 		QueueNode<T>* m_next;
 };
 
-}}
+}} // namespace
 
 #endif

@@ -3,7 +3,9 @@
 
 #include "infra/QueueNode.h"
 
+#include <atomic>
 #include <stdexcept>
+#include <type_traits>
 
 namespace squiddb { namespace infra {
 
@@ -24,6 +26,13 @@ class Queue {
 				QueueNode<T>* nodeToDelete = node;
 				node = node->getNext();
 
+				T data = nodeToDelete->getData();
+
+				if constexpr (std::is_pointer_v<T>) {
+					if (data != nullptr) {
+						delete data;
+					}
+				}
 				delete nodeToDelete;
 			}
 
@@ -85,10 +94,10 @@ class Queue {
 		QueueNode<T>* m_first;
 		QueueNode<T>* m_last;
 
-		size_t m_size;
-		size_t m_consumed;
+		std::atomic<size_t> m_size;
+		std::atomic<size_t> m_consumed;
 };
 
-}}
+}} // namespace
 
 #endif
