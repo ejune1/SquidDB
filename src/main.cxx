@@ -2,17 +2,44 @@
 #include "utils/Configuration.h"
 #include "utils/Logger.h"
 
+#include <atomic>
 #include <chrono>
+#include <csignal>
 #include <cstdio>
+#include <string>
 #include <thread>
+#include <unistd.h>
 
 using namespace squiddb;
 
+void signalHandler(int sigNum) {
+	fprintf(stderr, "main::signalHandler got signal %d\n", sigNum);
+}
+
+// accept binary only or binary configFilePath
 int main(int argc, char* argv[]) {
+	std::signal(SIGINT, signalHandler);
+	std::signal(SIGTERM, signalHandler);
+
+	// block SIGINT and SIGTERM
+	sigset_t signalsToBlock;
+	sigemptyset(&signalsToBlock);
+	sigaddset(&signalsToBlock, SIGINT);
+	sigaddset(&signalsToBlock, SIGTERM);
+	sigprocmask(SIG_BLOCK, &signalsToBlock, nullptr);
+
 	// create logger and configuration for dependency injection
 	utils::Logger& logger = utils::Logger::getInstance();
 	utils::Configuration config(logger);
-	config.read("./squiddb.conf");
+
+	std::string configFilePath;
+	if (argc > 1) {
+		configFilePath = argv[1];
+	} else {
+		configFilePath = "./squiddb.conf";
+	}
+
+	config.read(configFilePath);
 
 	logger.setLogLevel(config.getLogLevel());
 	logger.setOutputMode(config.getLogMode(), config.getLogFilePath());
@@ -21,12 +48,18 @@ int main(int argc, char* argv[]) {
 
 	logger.log(utils::Logger::LogLevel::Info, "welcome to squid");
 
-	std::this_thread::sleep_for(std::chrono::seconds(3));
+	// wait for only SIGINT or SIGTERM
+	sigset_t waitMask;
+	sigfillset(&waitMask);
+	sigdelset(&waitMask, SIGINT);
+	sigdelset(&waitMask, SIGTERM);
 
+	// go to sleep
+	sigsuspend(&waitMask);
+
+	// woken up by signal
 	logger.log(utils::Logger::LogLevel::Info, "shutting down");
 	logger.stop();
-
-	std::this_thread::sleep_for(std::chrono::seconds(3));
 
 	return 0;
 }
