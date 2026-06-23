@@ -17,14 +17,17 @@ class Logger {
 	public:
 		enum class LogMode {
 			Terminal = 0,
-			File = 1
+			File     = 1,
+			Unknown
 		};
 
 		enum class LogLevel {
-			Trace = 0,
-			Debug = 1,
-			Info  = 2,
-			Error = 3
+			Trace   = 0,
+			Debug   = 1,
+			Info    = 2,
+			Warn    = 3,
+			Error   = 4, 
+			Unknown = 5
 		};
 
 		// get singleton instance
@@ -41,6 +44,9 @@ class Logger {
 
 		LogLevel getLogLevel() const;
 		void setLogLevel(const LogLevel logLevel);
+
+		LogLevel parseLogLevel(const std::string& logLevelString) const;
+		LogMode parseLogMode(const std::string& logModeString) const;
 	
 	private:
 		struct LogItem {
@@ -56,6 +62,7 @@ class Logger {
 		Logger& operator=(const Logger&) = delete;
 
 		void run();
+
 		std::string logLevelString(const LogLevel logLevel) const;
 
 		LogMode m_logMode;

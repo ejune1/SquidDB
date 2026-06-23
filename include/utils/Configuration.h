@@ -1,6 +1,9 @@
 #ifndef CONFIGURATION_H
 #define CONFIGURATION_H
 
+#include "utils/Logger.h"
+
+#include <cstdint>
 #include <string>
 
 namespace squiddb { namespace utils {
@@ -8,22 +11,41 @@ namespace squiddb { namespace utils {
 class Configuration {
 	public:
 		enum class ConfigurationKey {
-			logFilePath = 0,
-			maxMemoryMB = 1	
+			LogFilePath = 0,
+			LogLevel = 1,
+			LogMode = 2,
+			MaxMemoryMB = 3,
+			MaxNodeHeight = 4,
+			Unknown = 5
 		};
+
+		Configuration(Logger& logger);
+		~Configuration() = default;
 
 		void read(std::string filename);
 
-		Configuration() = default;
-		~Configuration() = default;
+		std::string getFilename() const;
+
+		std::string getLogFilePath() const;
+		Logger::LogLevel getLogLevel() const;
+		Logger::LogMode getLogMode() const;
+
+		unsigned int getMaxMemoryMB() const;
+		std::uint8_t getMaxNodeHeight() const;
 
 	private:
 		std::string configurationKeyString(const ConfigurationKey configurationKey) const;
+		ConfigurationKey parseConfigurationKey(const std::string& keyString) const;
 
+		Logger& m_logger; 
 		std::string m_filename;
 
 		std::string m_logFilePath;
+		Logger::LogLevel m_logLevel;
+		Logger::LogMode m_logMode;
+
 		unsigned int m_maxMemoryMB;
+		std::uint8_t m_maxNodeHeight; 
 };
 
 }} // namespace

@@ -1,5 +1,7 @@
 #include "utils/Logger.h"
 
+#include "utils/StringUtils.h"
+
 #include <chrono>
 #include <cstdio>
 #include <iomanip>
@@ -10,7 +12,6 @@
 namespace squiddb { namespace utils {
 
 Logger::Logger() {
-	// TODO from config
 	m_logMode = LogMode::Terminal;
 	m_logLevel = LogLevel::Info;
 	m_queue = new infra::Queue<LogItem*>();
@@ -48,6 +49,10 @@ void Logger::stop() {
 }
 
 void Logger::setOutputMode(const Logger::LogMode logMode, const std::string filename) {
+	if (logMode == LogMode::Unknown) {
+		return;
+	}
+
 	if (m_logMode == LogMode::Terminal) {
 		if (logMode == LogMode::Terminal) {
 			return;
@@ -105,7 +110,51 @@ Logger::LogLevel Logger::getLogLevel() const {
 }
 
 void Logger::setLogLevel(const Logger::LogLevel logLevel) {
+	if (logLevel == LogLevel::Unknown) {
+		return;
+	}
+
 	m_logLevel = logLevel;
+}
+
+Logger::LogLevel Logger::parseLogLevel(const std::string& logLevelString) const {
+	std::string logLevelStringUpper = StringUtils::toUpper(logLevelString);	
+
+	if (logLevelStringUpper == "TRACE") {
+		return LogLevel::Trace;
+	}
+
+	if (logLevelStringUpper == "DEBUG") {
+		return LogLevel::Debug;
+	}
+
+	if (logLevelStringUpper == "INFO") {
+		return LogLevel::Info;
+	}
+
+	if (logLevelStringUpper == "WARN") {
+		return LogLevel::Warn;
+	}
+	
+	if (logLevelStringUpper == "ERROR") {
+		return LogLevel::Error;
+	}
+
+	return LogLevel::Unknown;
+}
+
+Logger::LogMode Logger::parseLogMode(const std::string& logModeString) const {
+	std::string logModeStringUpper = StringUtils::toUpper(logModeString);
+
+	if (logModeStringUpper == "TERMINAL") {
+		return LogMode::Terminal;
+	}
+
+	if (logModeStringUpper == "FILE") {
+		return LogMode::File;
+	}
+
+	return LogMode::Unknown;
 }
 
 void Logger::run() {
@@ -151,10 +200,12 @@ void Logger::run() {
 
 std::string Logger::logLevelString(const Logger::LogLevel logLevel) const {
 	switch (logLevel) {
-		case LogLevel::Trace: return "TRACE";
-		case LogLevel::Debug: return "DEBUG";
-		case LogLevel::Info:  return "INFO";
-		case LogLevel::Error: return "ERROR";
+		case LogLevel::Trace:   return "TRACE";
+		case LogLevel::Debug:   return "DEBUG";
+		case LogLevel::Info:    return "INFO";
+		case LogLevel::Warn:    return "WARN";
+		case LogLevel::Error:   return "ERROR";
+		case LogLevel::Unknown: return "UNKNOWN";
 	}
 	return "UNKNOWN";
 }
