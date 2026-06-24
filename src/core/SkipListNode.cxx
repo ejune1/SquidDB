@@ -5,11 +5,10 @@
 namespace squiddb { namespace core {
 
 template<typename K>
-SkipListNode<K>::SkipListNode(K key, std::uint8_t height) {
-	m_key = key;
-	m_height = height;
-	m_data = nullptr;
-	m_size = 0;
+SkipListNode<K>::SkipListNode(const K key, void* data, std::uint16_t size, const std::uint8_t height)
+	: m_key(key), m_height(height) {
+	m_data = data;
+	m_size = size;
 
 	m_next = new SkipListNode<K>*[m_height];
 	for (std::uint8_t x = 0; x < m_height; x++) {
@@ -29,8 +28,13 @@ K SkipListNode<K>::getKey() const {
 }
 
 template<typename K>
-SkipListNode<K>* SkipListNode<K>::getNext(const std::uint8_t level) const {
+SkipListNode<K>* SkipListNode<K>::getNext(const std::uint8_t level) {
 	return m_next[level];
+}
+
+template<typename K>
+void SkipListNode<K>::setNext(const std::uint8_t level, SkipListNode<K>* next) {
+	m_next[level] = next;
 }
 
 template<typename K>
@@ -39,13 +43,19 @@ std::uint8_t SkipListNode<K>::getHeight() const {
 }
 
 template<typename K>
-void* SkipListNode<K>::getData() const {
+void* SkipListNode<K>::getData() {
 	return m_data;
 }
 
 template<typename K>
-void SkipListNode<K>::setData(void* data) {
+void SkipListNode<K>::setData(void* data, std::uint16_t size) {
 	m_data = data;
+	m_size = size;
+}
+
+template<typename K>
+std::uint16_t SkipListNode<K>::getSize() const {
+	return m_size;
 }
 
 // explicit instantiation - we know what kinds of keys we will get
