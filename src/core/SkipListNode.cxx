@@ -19,7 +19,8 @@ SkipListNode<K>::SkipListNode(K key, std::uint8_t height) {
 
 template<typename K>
 SkipListNode<K>::~SkipListNode() {
-	delete m_next;
+	delete [] m_next;
+	m_next = nullptr;
 }
 
 template<typename K>
