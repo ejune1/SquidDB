@@ -5,6 +5,7 @@
 #include "utils/Configuration.h"
 #include "utils/Logger.h"
 
+#include <atomic>
 #include <cstdint>
 #include <random>
 
@@ -22,9 +23,9 @@ class SkipList {
 		// data modification (execution engine)
 		
 		// note size of data limited to 65,535
-		bool insert(const K key, void* data, std::uint16_t size);
+		bool insert(const K key, void* data, const std::uint16_t size);
 		bool remove(const K key);
-		bool update(const K key, void* data);
+		bool update(const K key, void* data, const std::uint16_t size);
 
 		// point lookup and verification
 		void* find(const K key) const;
@@ -34,7 +35,7 @@ class SkipList {
 		// TODO build an iterator
 
 		// statistical (query planner)
-		size_t size(bool calculate = false) const;
+		size_t size(const bool calculate = false) const;
 		size_t estimateRangeCardinality(const K lowKey, const K highKey) const;
 		size_t memoryUsageMB() const;
 
@@ -60,6 +61,8 @@ class SkipList {
 		SkipList<K>& operator=(SkipList<K>&& other) = delete;
 
 	private:
+		SkipListNode<K>* findNode(const K key) const;
+
 		const utils::Configuration& m_configuration;
 		utils::Logger& m_logger;
 
@@ -67,6 +70,7 @@ class SkipList {
 		SkipListNode<K>* m_head;
 
 		const bool m_primaryIndex;
+		std::atomic<size_t> m_size;
 };
 
 }} // namespace
