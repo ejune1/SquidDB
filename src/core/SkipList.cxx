@@ -58,6 +58,8 @@ bool SkipList<K>::insert(const K key, void* data, const std::uint16_t size) {
 	std::string message = "SkipL:ist<K>::insert key: " + std::to_string(key) + " size: " + std::to_string(size);
 	m_logger.log(utils::Logger::LogLevel::Trace, message);
 
+	// TODO fix this
+
 	for (std::uint8_t level = 0; level < nodeHeight; level++) {
 		if (m_head->getNext(level) == nullptr) {
 			SkipListNode<K>* insertNode = new SkipListNode<K>(key, data, size, nodeHeight);
@@ -95,6 +97,8 @@ template<typename K>
 bool SkipList<K>::remove(const K key) {
 	std::string message = "SkipL:ist<K>::remove key: " + std::to_string(key);
 	m_logger.log(utils::Logger::LogLevel::Trace, message);
+
+	// TODO fix this
 
 	SkipListNode<K>* foundNode = findNode(key);
 
@@ -191,25 +195,30 @@ size_t SkipList<K>::size(const bool calculate) const {
 	return m_size.load(std::memory_order_relaxed);
 }
 
+template<typename K>
+size_t SkipList<K>::estimateRangeCardinality(const K lowKey, const K highKey) const {
+	// TODO implement pointer widths
+	return 0;
+}
+
 
 template<typename K>
 SkipListNode<K>* SkipList<K>::findNode(const K key) const {
-	SkipListNode<K>* foundNode = nullptr;
+	SkipListNode<K>* node = m_head;
 
-	for (std::uint8_t level = m_maxNodeHeight - 1; level != 0; level--) {
-		SkipListNode<K>* node = m_head->getNext(level);
-
-		while ((node != nullptr) && (key > node->getKey())) {
+	std::uint8_t level = m_maxNodeHeight;
+	while (level-- > 0) {
+		while ((node->getNext(level) != nullptr) && (key > node->getNext(level)->getKey())) {
 			node = node->getNext(level);
 		}
+		assert(node != nullptr);
 
-		if ((node != nullptr) && (key == node->getKey())) {
-			foundNode = node;
-			break;
+		if ((node->getNext(level) != nullptr) && (key == node->getNext(level)->getKey())) {
+			return node->getNext(level);
 		}
 	}
 
-	return foundNode;
+	return nullptr;
 }
 
 // explicit instantiation - we know what kinds of keys we will get
