@@ -208,6 +208,7 @@ SkipListNode<K>* SkipList<K>::findNode(const K key) const {
 
 	std::uint8_t level = m_maxNodeHeight;
 	while (level-- > 0) {
+		// TODO use the trail node like you have in insert
 		while ((node->getNext(level) != nullptr) && (key > node->getNext(level)->getKey())) {
 			node = node->getNext(level);
 		}
