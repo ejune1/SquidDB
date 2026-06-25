@@ -204,19 +204,25 @@ size_t SkipList<K>::estimateRangeCardinality(const K lowKey, const K highKey) co
 
 template<typename K>
 SkipListNode<K>* SkipList<K>::findNode(const K key) const {
+	SkipListNode<K>* trail = m_head;
 	SkipListNode<K>* node = m_head;
 
 	std::uint8_t level = m_maxNodeHeight;
 	while (level-- > 0) {
-		// TODO use the trail node like you have in insert
-		while ((node->getNext(level) != nullptr) && (key > node->getNext(level)->getKey())) {
+		node = node->getNext(level);
+
+		while ((node != nullptr) && (key > node->getKey())) {
+			trail = node;
 			node = node->getNext(level);
 		}
-		assert(node != nullptr);
+		assert(trail != nullptr);
 
-		if ((node->getNext(level) != nullptr) && (key == node->getNext(level)->getKey())) {
-			return node->getNext(level);
+		if ((node != nullptr) && (key == node->getKey())) {
+			return node;
 		}
+		assert((node == nullptr) || (key < node->getKey()));
+
+		node = trail;
 	}
 
 	return nullptr;
