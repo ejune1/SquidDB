@@ -92,6 +92,10 @@ void Logger::setOutputMode(const Logger::LogMode logMode, const std::string file
 }
 
 void Logger::log(const Logger::LogLevel logLevel, std::string message) {
+	if (logLevel < m_logLevel) {
+		return;
+	}
+
 	std::chrono::time_point<std::chrono::system_clock> now = std::chrono::system_clock::now();
 	LogItem* logItem = new LogItem();
 
