@@ -1,5 +1,6 @@
 #include "core/SkipListNode.h"
 
+#include <cassert>
 #include <cstdint>
 
 namespace squiddb { namespace core {
@@ -29,11 +30,13 @@ K SkipListNode<K>::getKey() const {
 
 template<typename K>
 SkipListNode<K>* SkipListNode<K>::getNext(const std::uint8_t level) {
+	assert(level < m_height);
 	return m_next[level];
 }
 
 template<typename K>
 void SkipListNode<K>::setNext(const std::uint8_t level, SkipListNode<K>* next) {
+	assert(level < m_height);
 	m_next[level] = next;
 }
 
