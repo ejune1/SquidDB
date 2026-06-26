@@ -62,6 +62,7 @@ class SkipList {
 
 	private:
 		SkipListNode<K>* findNode(const K key) const;
+		SkipListNode<K>** traversePrevNodes(const K key, bool& duplicateKey) const;
 
 		const utils::Configuration& m_configuration;
 		utils::Logger& m_logger;

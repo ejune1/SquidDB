@@ -1,3 +1,4 @@
+#include "core/SkipList.h"
 #include "infra/Queue.h"
 #include "utils/Configuration.h"
 #include "utils/Logger.h"
@@ -45,8 +46,11 @@ int main(int argc, char* argv[]) {
 	logger.setOutputMode(config.getLogMode(), config.getLogFilePath());
 
 	logger.start();
-
 	logger.log(utils::Logger::LogLevel::Info, "welcome to squid");
+
+	// test some stuff
+	core::SkipList<int> skipList(config, logger, true /* primary */);
+	skipList.insert(1, nullptr, 0);
 
 	// wait for only SIGINT or SIGTERM
 	sigset_t waitMask;
