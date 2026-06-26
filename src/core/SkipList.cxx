@@ -53,7 +53,7 @@ void SkipList<K>::initialize() {
 
 template<typename K>
 bool SkipList<K>::insert(const K key, void* data, const std::uint16_t size, std::uint8_t nodeHeight) {
-	std::string message = "SkipL:ist<K>::insert key: " + std::to_string(key) + " size: " + std::to_string(size);
+	std::string message = "SkipList<K>::insert key: " + std::to_string(key) + " size: " + std::to_string(size);
 	m_logger.log(utils::Logger::LogLevel::Trace, message);
 
 	if (nodeHeight == 0) {
@@ -65,7 +65,7 @@ bool SkipList<K>::insert(const K key, void* data, const std::uint16_t size, std:
 	SkipListNode<K>** prevNodes = traversePrevNodes(key, duplicateKey);
 
 	if ((m_primaryIndex == true) && (duplicateKey == true)) {
-		std::string message = "SkipL:ist<K>::insert duplicate key (primary) key: " + std::to_string(key);
+		std::string message = "SkipList<K>::insert duplicate key (primary) key: " + std::to_string(key);
 		m_logger.log(utils::Logger::LogLevel::Debug, message);
 
 		delete [] prevNodes;
@@ -92,7 +92,7 @@ bool SkipList<K>::insert(const K key, void* data, const std::uint16_t size, std:
 
 template<typename K>
 bool SkipList<K>::remove(const K key) {
-	std::string message = "SkipL:ist<K>::remove key: " + std::to_string(key);
+	std::string message = "SkipList<K>::remove key: " + std::to_string(key);
 	m_logger.log(utils::Logger::LogLevel::Trace, message);
 
 	bool duplicateKey = false;
@@ -141,7 +141,7 @@ bool SkipList<K>::remove(const K key) {
 
 template<typename K>
 bool SkipList<K>::update(const K key, void* data, const std::uint16_t size) {
-	std::string message = "SkipL:ist<K>::update key: " + std::to_string(key);
+	std::string message = "SkipList<K>::update key: " + std::to_string(key);
 	m_logger.log(utils::Logger::LogLevel::Trace, message);
 
 	SkipListNode<K>* foundNode = findNode(key);
@@ -157,7 +157,7 @@ bool SkipList<K>::update(const K key, void* data, const std::uint16_t size) {
 		return true;
 	}
 
-	message = "SkipL:ist<K>::update key not found key: " + std::to_string(key);
+	message = "SkipList<K>::update key not found key: " + std::to_string(key);
 	m_logger.log(utils::Logger::LogLevel::Debug, message);
 
 	// TODO who frees the passed in data that when key not found
@@ -167,7 +167,7 @@ bool SkipList<K>::update(const K key, void* data, const std::uint16_t size) {
 
 template<typename K>
 void* SkipList<K>::find(const K key) const {
-	std::string message = "SkipL:ist<K>::find key: " + std::to_string(key);
+	std::string message = "SkipList<K>::find key: " + std::to_string(key);
 	m_logger.log(utils::Logger::LogLevel::Trace, message);
 
 	SkipListNode<K>* foundNode = findNode(key);
@@ -182,7 +182,7 @@ void* SkipList<K>::find(const K key) const {
 
 template<typename K>
 bool SkipList<K>::contains(const K key) const {
-	std::string message = "SkipL:ist<K>::contains key: " + std::to_string(key);
+	std::string message = "SkipList<K>::contains key: " + std::to_string(key);
 	m_logger.log(utils::Logger::LogLevel::Trace, message);
 
 	SkipListNode<K>* foundNode = findNode(key);

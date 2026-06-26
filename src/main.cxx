@@ -1,5 +1,4 @@
 #include "core/SkipList.h"
-#include "infra/Queue.h"
 #include "utils/Configuration.h"
 #include "utils/Logger.h"
 
@@ -31,25 +30,27 @@ int main(int argc, char* argv[]) {
 
 	// create logger and configuration for dependency injection
 	utils::Logger& logger = utils::Logger::getInstance();
-	utils::Configuration config(logger);
+	utils::Configuration configuration(logger);
 
-	std::string configFilePath;
+	std::string configurationFilePath;
 	if (argc > 1) {
-		configFilePath = argv[1];
+		configurationFilePath = argv[1];
 	} else {
-		configFilePath = "./squiddb.conf";
+		configurationFilePath = "./squiddb.conf";
 	}
 
-	config.read(configFilePath);
+	configuration.read(configurationFilePath);
 
-	logger.setLogLevel(config.getLogLevel());
-	logger.setOutputMode(config.getLogMode(), config.getLogFilePath());
+	logger.setLogLevel(configuration.getLogLevel());
+	logger.setOutputMode(configuration.getLogMode(), configuration.getLogFilePath());
 
 	logger.start();
 	logger.log(utils::Logger::LogLevel::Info, "welcome to squid");
 
 	// test some stuff
-	core::SkipList<int> skipList(config, logger, true /* primary */);
+	core::SkipList<int> skipList(configuration, logger, true /* primary */);
+	skipList.initialize();
+
 	skipList.insert(1 /* key */, nullptr /* data */, 0 /* size */, 1 /* nodeHeight */);
 
 	// wait for only SIGINT or SIGTERM
