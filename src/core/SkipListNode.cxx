@@ -11,6 +11,8 @@ SkipListNode<K>::SkipListNode(const K key, void* data, std::uint16_t size, const
 	m_data = data;
 	m_size = size;
 
+	assert(m_height > 0);
+
 	m_next = new SkipListNode<K>*[m_height];
 	for (std::uint8_t x = 0; x < m_height; x++) {
 		m_next[x] = nullptr;

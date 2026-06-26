@@ -1,6 +1,6 @@
 # Compiler and compilation flags
 CXX      = g++
-CXXFLAGS = -std=c++17 -Wall -Wextra -Iinclude
+CXXFLAGS = -O0 -g -std=c++17 -Wall -Wextra -Iinclude
 
 # List your source files here manually
 SRCS = src/main.cxx src/utils/Configuration.cxx src/utils/Logger.cxx src/utils/StringUtils.cxx src/core/SkipListNode.cxx src/core/SkipList.cxx

@@ -52,11 +52,13 @@ void SkipList<K>::initialize() {
 }
 
 template<typename K>
-bool SkipList<K>::insert(const K key, void* data, const std::uint16_t size) {
+bool SkipList<K>::insert(const K key, void* data, const std::uint16_t size, std::uint8_t nodeHeight) {
 	std::string message = "SkipL:ist<K>::insert key: " + std::to_string(key) + " size: " + std::to_string(size);
 	m_logger.log(utils::Logger::LogLevel::Trace, message);
 
-	std::uint8_t nodeHeight = SkipList<K>::generateNodeHeight(m_maxNodeHeight);
+	if (nodeHeight == 0) {
+		nodeHeight = SkipList<K>::generateNodeHeight(m_maxNodeHeight);
+	}
 	SkipListNode<K>* insertNode = new SkipListNode<K>(key, data, size, nodeHeight);
 
 	bool duplicateKey = false;
