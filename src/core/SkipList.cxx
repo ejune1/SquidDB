@@ -51,6 +51,10 @@ void SkipList<K>::initialize() {
 
 	m_maxNodeHeight = m_configuration.getMaxNodeHeight();
 
+	if (m_maxNodeHeight == 0) {
+		throw std::runtime_error("SkipList<K>::initialize maxNodeHeight 0");
+	}
+
 	std::string message = "SkipList<K>::initialize with max node height: " + std::to_string(m_maxNodeHeight);
 	m_logger.log(utils::Logger::LogLevel::Info, message);
 
@@ -64,6 +68,10 @@ template<typename K>
 bool SkipList<K>::insert(const K key, void* data, const std::uint16_t size, std::uint8_t nodeHeight) {
 	if (m_initialized == false) {
 		throw std::runtime_error("SkipList<K>::insert not initialized");
+	}
+
+	if (nodeHeight > m_maxNodeHeight) {
+		throw std::runtime_error("SkipList<K>::insert nodeHeight > maxNodeHeight");
 	}
 
 	std::string message = "SkipList<K>::insert key: " + std::to_string(key) + " size: " + std::to_string(size);

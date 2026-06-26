@@ -52,7 +52,7 @@ obj/tests/%.o: tests/%.cxx
 
 # 6. Shortcut to build and immediately run the test suite
 test: $(TEST_TARGET)
-	./$(TEST_TARGET)
+	./$(TEST_TARGET) -s
 
 # 7. Clean up all build artifacts
 clean:
