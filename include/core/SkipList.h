@@ -35,6 +35,7 @@ class SkipList {
 		// TODO build an iterator
 
 		// statistical (query planner)
+		bool empty() const;
 		size_t size(const bool calculate = false) const;
 		size_t estimateRangeCardinality(const K lowKey, const K highKey) const;
 		size_t memoryUsageMB() const;
@@ -71,6 +72,8 @@ class SkipList {
 		SkipListNode<K>* m_head;
 
 		const bool m_primaryIndex;
+
+		std::atomic<bool> m_initialized;
 		std::atomic<size_t> m_size;
 };
 

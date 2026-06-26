@@ -8,6 +8,7 @@
 #include <cassert>
 #include <cstdint>
 #include <cstdlib>
+#include <stdexcept>
 #include <string>
 
 namespace squiddb { namespace core {
@@ -17,6 +18,7 @@ SkipList<K>::SkipList(const utils::Configuration& configuration, utils::Logger& 
 	: m_configuration(configuration), m_logger(logger), m_primaryIndex(primaryIndex) {
 	m_maxNodeHeight = 0;
 	m_head = nullptr;
+	m_initialized = false;
 	m_size = 0;
 }
 
@@ -38,10 +40,15 @@ SkipList<K>::~SkipList() {
 	}
 
 	m_head = nullptr;
+	m_initialized = false;
 }
 
 template<typename K>
 void SkipList<K>::initialize() {
+	if (m_initialized == true) {
+		throw std::runtime_error("SkipList<K>::initialize already initialized");
+	}
+
 	m_maxNodeHeight = m_configuration.getMaxNodeHeight();
 
 	std::string message = "SkipList<K>::initialize with max node height: " + std::to_string(m_maxNodeHeight);
@@ -49,10 +56,16 @@ void SkipList<K>::initialize() {
 
 	// head is dummy object
 	m_head = new SkipListNode<K>(K{}, nullptr, 0, m_maxNodeHeight);
+
+	m_initialized = true;
 }
 
 template<typename K>
 bool SkipList<K>::insert(const K key, void* data, const std::uint16_t size, std::uint8_t nodeHeight) {
+	if (m_initialized == false) {
+		throw std::runtime_error("SkipList<K>::insert not initialized");
+	}
+
 	std::string message = "SkipList<K>::insert key: " + std::to_string(key) + " size: " + std::to_string(size);
 	m_logger.log(utils::Logger::LogLevel::Trace, message);
 
@@ -92,6 +105,10 @@ bool SkipList<K>::insert(const K key, void* data, const std::uint16_t size, std:
 
 template<typename K>
 bool SkipList<K>::remove(const K key) {
+	if (m_initialized == false) {
+		throw std::runtime_error("SkipList<K>::remove not initialized");
+	}
+
 	std::string message = "SkipList<K>::remove key: " + std::to_string(key);
 	m_logger.log(utils::Logger::LogLevel::Trace, message);
 
@@ -141,6 +158,10 @@ bool SkipList<K>::remove(const K key) {
 
 template<typename K>
 bool SkipList<K>::update(const K key, void* data, const std::uint16_t size) {
+	if (m_initialized == false) {
+		throw std::runtime_error("SkipList<K>::update not initialized");
+	}
+
 	std::string message = "SkipList<K>::update key: " + std::to_string(key);
 	m_logger.log(utils::Logger::LogLevel::Trace, message);
 
@@ -167,6 +188,10 @@ bool SkipList<K>::update(const K key, void* data, const std::uint16_t size) {
 
 template<typename K>
 void* SkipList<K>::find(const K key) const {
+	if (m_initialized == false) {
+		throw std::runtime_error("SkipList<K>::find not initialized");
+	}
+
 	std::string message = "SkipList<K>::find key: " + std::to_string(key);
 	m_logger.log(utils::Logger::LogLevel::Trace, message);
 
@@ -182,6 +207,10 @@ void* SkipList<K>::find(const K key) const {
 
 template<typename K>
 bool SkipList<K>::contains(const K key) const {
+	if (m_initialized == false) {
+		throw std::runtime_error("SkipList<K>::contains not initialized");
+	}
+
 	std::string message = "SkipList<K>::contains key: " + std::to_string(key);
 	m_logger.log(utils::Logger::LogLevel::Trace, message);
 
@@ -191,7 +220,20 @@ bool SkipList<K>::contains(const K key) const {
 }
 
 template<typename K>
+bool SkipList<K>::empty() const {
+	if (m_initialized == false) {
+		throw std::runtime_error("SkipList<K>::empty not initialized");
+	}
+
+	return (m_size.load(std::memory_order_relaxed) == 0);
+}
+
+template<typename K>
 size_t SkipList<K>::size(const bool calculate) const {
+	if (m_initialized == false) {
+		throw std::runtime_error("SkipList<K>::size not initialized");
+	}
+
 	if (calculate == true) {
 		size_t size = 0;
 		SkipListNode<K>* node = m_head->getNext(0);
@@ -209,18 +251,30 @@ size_t SkipList<K>::size(const bool calculate) const {
 
 template<typename K>
 size_t SkipList<K>::estimateRangeCardinality(const K lowKey, const K highKey) const {
+	if (m_initialized == false) {
+		throw std::runtime_error("SkipList<K>::estimateRangeCardinality not initialized");
+	}
+
 	// TODO implement pointer widths
 	return 0;
 }
 
 template<typename K>
 size_t SkipList<K>::memoryUsageMB() const {
+	if (m_initialized == false) {
+		throw std::runtime_error("SkipList<K>::memoryUsageMB not initialized");
+	}
+
 	// TODO
 	return 0;
 }
 
 template<typename K>
 SkipListNode<K>* SkipList<K>::findNode(const K key) const {
+	if (m_initialized == false) {
+		throw std::runtime_error("SkipList<K>::findNode not initialized");
+	}
+
 	SkipListNode<K>* trail = m_head;
 	SkipListNode<K>* node = m_head;
 
@@ -247,6 +301,10 @@ SkipListNode<K>* SkipList<K>::findNode(const K key) const {
 
 template<typename K>
 SkipListNode<K>** SkipList<K>::traversePrevNodes(const K key, bool& duplicateKey) const {
+	if (m_initialized == false) {
+		throw std::runtime_error("SkipList<K>::traversePrevNodes not initialized");
+	}
+
 	SkipListNode<K>** prevNodes = new SkipListNode<K>*[m_maxNodeHeight];
 
 	SkipListNode<K>* trail = m_head;

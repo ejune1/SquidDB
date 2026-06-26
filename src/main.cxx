@@ -47,12 +47,6 @@ int main(int argc, char* argv[]) {
 	logger.start();
 	logger.log(utils::Logger::LogLevel::Info, "welcome to squid");
 
-	// test some stuff
-	core::SkipList<int> skipList(configuration, logger, true /* primary */);
-	skipList.initialize();
-
-	skipList.insert(1 /* key */, nullptr /* data */, 0 /* size */, 1 /* nodeHeight */);
-
 	// wait for only SIGINT or SIGTERM
 	sigset_t waitMask;
 	sigfillset(&waitMask);
