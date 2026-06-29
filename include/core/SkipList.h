@@ -14,7 +14,7 @@ namespace squiddb { namespace core {
 template<typename K>
 class SkipList {
 	public:
-		SkipList(const utils::Configuration& configuration, utils::Logger& logger, const bool primaryIndex);
+		SkipList(utils::Logger& logger, const bool primaryIndex, const uint8_t maxNodeHeight);
 		~SkipList();
 
 		// must be called before anything else
@@ -65,13 +65,12 @@ class SkipList {
 		SkipListNode<K>* findNode(const K key) const;
 		SkipListNode<K>** traversePrevNodes(const K key, bool& duplicateKey) const;
 
-		const utils::Configuration& m_configuration;
 		utils::Logger& m_logger;
 
-		std::uint8_t m_maxNodeHeight;
-		SkipListNode<K>* m_head;
-
 		const bool m_primaryIndex;
+		const std::uint8_t m_maxNodeHeight;
+
+		SkipListNode<K>* m_head;
 
 		std::atomic<bool> m_initialized;
 		std::atomic<size_t> m_size;

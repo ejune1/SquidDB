@@ -14,9 +14,8 @@
 namespace squiddb { namespace core {
 
 template<typename K>
-SkipList<K>::SkipList(const utils::Configuration& configuration, utils::Logger& logger, const bool primaryIndex)
-	: m_configuration(configuration), m_logger(logger), m_primaryIndex(primaryIndex) {
-	m_maxNodeHeight = 0;
+SkipList<K>::SkipList(utils::Logger& logger, const bool primaryIndex, const std::uint8_t maxNodeHeight)
+	: m_logger(logger), m_primaryIndex(primaryIndex), m_maxNodeHeight(maxNodeHeight) {
 	m_head = nullptr;
 	m_initialized = false;
 	m_size = 0;
@@ -48,8 +47,6 @@ void SkipList<K>::initialize() {
 	if (m_initialized == true) {
 		throw std::runtime_error("SkipList<K>::initialize already initialized");
 	}
-
-	m_maxNodeHeight = m_configuration.getMaxNodeHeight();
 
 	if (m_maxNodeHeight == 0) {
 		throw std::runtime_error("SkipList<K>::initialize maxNodeHeight 0");

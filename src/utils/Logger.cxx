@@ -38,6 +38,11 @@ Logger& Logger::getInstance() {
 }
 
 void Logger::start() {
+	if (m_thread.joinable() == true) {
+		m_thread.join();
+	}
+
+	m_stop = false;
 	m_thread = std::thread(&Logger::run, this);
 }
 
@@ -164,6 +169,7 @@ Logger::LogMode Logger::parseLogMode(const std::string& logModeString) const {
 
 void Logger::run() {
 	size_t itemsRemaining = 0;
+	bool loggedRemaining = false;
 
 	while ((m_stop == false) || (itemsRemaining > 0)) {
 		std::unique_lock<std::mutex> lock(m_mutex);
@@ -195,9 +201,11 @@ void Logger::run() {
 
 		if (m_stop == true) {
 			itemsRemaining = m_queue->size();
-			if (itemsRemaining > 0) {
+			if ((itemsRemaining > 0) && (loggedRemaining == false)) {
 				std::string message = "Logger::run Logger purging " + std::to_string(itemsRemaining) + " items";
 				log(LogLevel::Info, message);
+
+				loggedRemaining = true;
 			}
 		}
 	}

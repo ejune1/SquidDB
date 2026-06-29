@@ -1,6 +1,7 @@
 #ifndef SKIPLISTNODE_H
 #define SKIPLISTNODE_H
 
+#include <cstddef>
 #include <cstdint>
 
 namespace squiddb { namespace core {
@@ -13,8 +14,11 @@ class SkipListNode {
 
 		K getKey() const;
 
-		SkipListNode<K>* getNext(const std::uint8_t level);
+		SkipListNode<K>* getNext(const std::uint8_t level) const;
 		void setNext(const std::uint8_t level, SkipListNode<K>* next);
+
+		size_t getWidth(const std::uint8_t level) const;
+		void setWidth(const std::uint8_t level, const size_t width);
 
 		std::uint8_t getHeight() const;
 
@@ -31,6 +35,7 @@ class SkipListNode {
 
 		const std::uint8_t m_height;
 		SkipListNode<K>** m_next;
+		size_t* m_width;
 };
 
 }} // namespace
