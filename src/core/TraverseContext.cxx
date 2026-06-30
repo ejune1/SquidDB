@@ -2,6 +2,7 @@
 
 #include "core/SkipListNode.h"
 
+#include <cassert>
 #include <cstddef>
 #include <cstdint>
 
@@ -31,5 +32,46 @@ TraverseContext<K>::~TraverseContext() {
 	m_prevRank = nullptr;
 }
 
+template<typename K>
+std::uint8_t TraverseContext<K>::getSize() const {
+	return m_size;
+}
+
+template<typename K>
+SkipListNode<K>* TraverseContext<K>::getPrevNode(const std::uint8_t index) const {
+	assert(index < m_size);
+	return m_prevNode[index];
+}
+
+template<typename K>
+void TraverseContext<K>::setPrevNode(const std::uint8_t index, SkipListNode<K>* prevNode) {
+	assert(index < m_size);
+	m_prevNode[index] = prevNode;
+}
+
+template<typename K>
+size_t TraverseContext<K>::getPrevRank(const std::uint8_t index) const {
+	assert(index < m_size);
+	return m_prevRank[index];
+}
+
+template<typename K>
+void TraverseContext<K>::setPrevRank(const std::uint8_t index, const size_t prevRank) {
+	assert(index < m_size);
+	m_prevRank[index] = prevRank;
+}
+
+template<typename K>
+size_t TraverseContext<K>::getRank() const {
+	return m_rank;
+}
+
+template<typename K>
+void TraverseContext<K>::setRank(const size_t rank) {
+	m_rank = rank;
+}
+
+// explicit instantiation - we know what kinds of keys we will get
+template class TraverseContext<int>;
 
 }} // namespace

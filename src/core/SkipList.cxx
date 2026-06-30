@@ -80,29 +80,46 @@ bool SkipList<K>::insert(const K key, void* data, const std::uint16_t size, std:
 	SkipListNode<K>* insertNode = new SkipListNode<K>(key, data, size, nodeHeight);
 
 	bool duplicateKey = false;
-	SkipListNode<K>** prevNodes = traversePrevNodes(key, duplicateKey);
+	TraverseContext<K>* traverseContext = traversePrevNodes(key, duplicateKey);
 
 	if ((m_primaryIndex == true) && (duplicateKey == true)) {
 		std::string message = "SkipList<K>::insert duplicate key (primary) key: " + std::to_string(key);
 		m_logger.log(utils::Logger::LogLevel::Debug, message);
 
-		delete [] prevNodes;
+		delete traverseContext;
 		return false;
+	}
+
+	// increment width for all levels above the height of this node
+	for (uint8_t level = m_maxNodeHeight - 1; level >= nodeHeight; level--) {
+		SkipListNode<K>* prev = traverseContext->getPrevNode(level);
+		assert(prev != nullptr);
+
+		prev->setWidth(level, prev->getWidth(level) + 1);
 	}
 
 	std::uint8_t level = nodeHeight;
 	while (level-- > 0) {
-		SkipListNode<K>* prev = prevNodes[level];
+		SkipListNode<K>* prev = traverseContext->getPrevNode(level);
 		SkipListNode<K>* next = prev->getNext(level);
 
 		assert((prev == m_head) || (key > prev->getKey()));
 		assert((next == nullptr) || (key <= next->getKey()));
 
+		size_t prevNodeRank = traverseContext->getPrevRank(level);
+		size_t insertNodeRank = traverseContext->getRank();
+
+		size_t prevWidth = (insertNodeRank - prevNodeRank) + 1;
+		size_t insertWidth = (prev->getWidth(level)) - (insertNodeRank - prevNodeRank);
+
 		prev->setNext(level, insertNode);
+		prev->setWidth(level, prevWidth);
+
 		insertNode->setNext(level, next);
+		insertNode->setWidth(level, insertWidth);
 	}
 
-	delete [] prevNodes;
+	delete traverseContext;
 
 	m_size.fetch_add(1, std::memory_order_relaxed);
 	return true;
@@ -118,13 +135,13 @@ bool SkipList<K>::remove(const K key) {
 	m_logger.log(utils::Logger::LogLevel::Trace, message);
 
 	bool duplicateKey = false;
-	SkipListNode<K>** prevNodes = traversePrevNodes(key, duplicateKey);
+	TraverseContext<K>* traverseContext = traversePrevNodes(key, duplicateKey);
 
 	if (duplicateKey == false) {
 		message = "SkipList<K>::remove key not found key: " + std::to_string(key);
 		m_logger.log(utils::Logger::LogLevel::Debug, message);
 
-		delete [] prevNodes;
+		delete traverseContext;
 		return false;
 	}
 
@@ -132,7 +149,7 @@ bool SkipList<K>::remove(const K key) {
 
 	std::uint8_t level = m_maxNodeHeight;
 	while (level-- > 0) {
-		SkipListNode<K>* prev = prevNodes[level];
+		SkipListNode<K>* prev = traverseContext->getPrevNode(level);
 		SkipListNode<K>* next = prev->getNext(level);
 
 		assert((prev == m_head) || (key > prev->getKey()));
@@ -142,8 +159,15 @@ bool SkipList<K>::remove(const K key) {
 			assert((removeNode == nullptr) || (removeNode == next));
 
 			removeNode = next;
+			size_t prevWidth = (prev->getWidth(level) + removeNode->getWidth(level)) - 1;
+
 			prev->setNext(level, next->getNext(level));
+			prev->setWidth(level, prevWidth);
+
 			next->setNext(level, nullptr);
+		} else {
+			//decrement width for all levels above remove node's height
+			prev->setWidth(level, prev->getWidth(level) - 1);
 		}
 	}
 	assert(removeNode != nullptr);
@@ -155,7 +179,7 @@ bool SkipList<K>::remove(const K key) {
 		std::free(dataToDelete);
 	}
 
-	delete [] prevNodes;
+	delete traverseContext;
 
 	m_size.fetch_sub(1, std::memory_order_relaxed);
 	return true;
@@ -256,6 +280,9 @@ size_t SkipList<K>::size(const bool calculate) const {
 
 template<typename K>
 size_t SkipList<K>::estimateRangeCardinality(const K lowKey, const K highKey) const {
+	(void) lowKey;
+	(void) highKey;
+
 	if (m_initialized == false) {
 		throw std::runtime_error("SkipList<K>::estimateRangeCardinality not initialized");
 	}
@@ -305,15 +332,17 @@ SkipListNode<K>* SkipList<K>::findNode(const K key) const {
 }
 
 template<typename K>
-SkipListNode<K>** SkipList<K>::traversePrevNodes(const K key, bool& duplicateKey) const {
+TraverseContext<K>* SkipList<K>::traversePrevNodes(const K key, bool& duplicateKey) const {
 	if (m_initialized == false) {
 		throw std::runtime_error("SkipList<K>::traversePrevNodes not initialized");
 	}
 
-	SkipListNode<K>** prevNodes = new SkipListNode<K>*[m_maxNodeHeight];
+	TraverseContext<K>* traverseContext = new TraverseContext<K>(m_maxNodeHeight);
 
 	SkipListNode<K>* trail = m_head;
 	SkipListNode<K>* node = m_head;
+
+	size_t accumulatedRank = 0;
 
 	std::uint8_t level = m_maxNodeHeight;
 	while (level-- > 0) {
@@ -321,6 +350,8 @@ SkipListNode<K>** SkipList<K>::traversePrevNodes(const K key, bool& duplicateKey
 
 		while ((node != nullptr) && (key > node->getKey())) {
 			trail = node;
+			accumulatedRank += trail->getWidth(level);
+
 			node = node->getNext(level);
 		}
 		assert(trail != nullptr);
@@ -329,11 +360,14 @@ SkipListNode<K>** SkipList<K>::traversePrevNodes(const K key, bool& duplicateKey
 			duplicateKey = true;
 		}
 
-		prevNodes[level] = trail;
+		traverseContext->setPrevNode(level, trail);
+		traverseContext->setPrevRank(level, accumulatedRank);
+
 		node = trail;
 	}
 
-	return prevNodes;
+	traverseContext->setRank(accumulatedRank);
+	return traverseContext;
 }
 
 // explicit instantiation - we know what kinds of keys we will get

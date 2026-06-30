@@ -2,6 +2,7 @@
 #define SKIPLIST_H
 
 #include "core/SkipListNode.h"
+#include "core/TraverseContext.h"
 #include "utils/Configuration.h"
 #include "utils/Logger.h"
 
@@ -63,7 +64,7 @@ class SkipList {
 
 	private:
 		SkipListNode<K>* findNode(const K key) const;
-		SkipListNode<K>** traversePrevNodes(const K key, bool& duplicateKey) const;
+		TraverseContext<K>* traversePrevNodes(const K key, bool& duplicateKey) const;
 
 		utils::Logger& m_logger;
 
