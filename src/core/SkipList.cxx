@@ -282,15 +282,28 @@ size_t SkipList<K>::size(const bool calculate) const {
 
 template<typename K>
 size_t SkipList<K>::estimateRangeCardinality(const K lowKey, const K highKey) const {
-	(void) lowKey;
-	(void) highKey;
-
 	if (m_initialized == false) {
 		throw std::runtime_error("SkipList<K>::estimateRangeCardinality not initialized");
 	}
 
-	// TODO implement pointer widths
-	return 0;
+	if (lowKey > highKey) {
+		std::string message = "SkipList<K>::estimateRangeCardinality lowKey > highKey";
+		m_logger.log(utils::Logger::LogLevel::Warn, message);
+		return 0;
+	}
+
+	bool duplicateKey = false;
+	TraverseContext<K>* traverseContextLow = traversePrevNodes(lowKey, duplicateKey);
+	TraverseContext<K>* traverseContextHigh = traversePrevNodes(highKey, duplicateKey);
+	
+	size_t lowRank = traverseContextLow->getPrevRank(0 /* level index */);
+	size_t highRank = traverseContextHigh->getPrevRank(0 /* level index */);
+	assert(lowRank <= highRank);
+
+	delete traverseContextLow;
+	delete traverseContextHigh;
+
+	return highRank - lowRank;
 }
 
 template<typename K>
@@ -299,8 +312,26 @@ size_t SkipList<K>::memoryUsageMB() const {
 		throw std::runtime_error("SkipList<K>::memoryUsageMB not initialized");
 	}
 
-	// TODO
-	return 0;
+	size_t totalBytes = 0;
+
+	SkipListNode<K>* node = m_head;
+	while (node != nullptr) {
+		std::uint8_t nodeHeight = node->getHeight();
+		// the node itself
+		totalBytes += sizeof(SkipListNode<K>);
+		// width array
+		totalBytes += nodeHeight * sizeof(size_t);
+		// next pointer array
+		totalBytes += nodeHeight * sizeof(SkipListNode<K>*);
+
+		if ((node != m_head) && (node->getData() != nullptr)) {
+			totalBytes += node->getSize();
+		}
+
+		node = node->getNext(0 /* level */);
+	}
+
+	return totalBytes / (1024 * 1024);
 }
 
 template<typename K>
