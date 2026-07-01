@@ -77,7 +77,6 @@ bool SkipList<K>::insert(const K key, void* data, const std::uint16_t size, std:
 	if (nodeHeight == 0) {
 		nodeHeight = SkipList<K>::generateNodeHeight(m_maxNodeHeight);
 	}
-	SkipListNode<K>* insertNode = new SkipListNode<K>(key, data, size, nodeHeight);
 
 	bool duplicateKey = false;
 	TraverseContext<K>* traverseContext = traversePrevNodes(key, duplicateKey);
@@ -89,6 +88,8 @@ bool SkipList<K>::insert(const K key, void* data, const std::uint16_t size, std:
 		delete traverseContext;
 		return false;
 	}
+
+	SkipListNode<K>* insertNode = new SkipListNode<K>(key, data, size, nodeHeight);
 
 	// increment width for all levels above the height of this node
 	for (uint8_t level = m_maxNodeHeight - 1; level >= nodeHeight; level--) {
