@@ -62,6 +62,9 @@ class SkipList {
 		SkipList(SkipList<K>&& other) = delete;
 		SkipList<K>& operator=(SkipList<K>&& other) = delete;
 
+		// test support
+		bool validate() const;
+
 	private:
 		SkipListNode<K>* findNode(const K key) const;
 		TraverseContext<K>* traversePrevNodes(const K key, bool& duplicateKey) const;

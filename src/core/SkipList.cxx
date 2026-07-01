@@ -108,9 +108,10 @@ bool SkipList<K>::insert(const K key, void* data, const std::uint16_t size, std:
 
 		size_t prevNodeRank = traverseContext->getPrevRank(level);
 		size_t insertNodeRank = traverseContext->getRank();
+		size_t distance = insertNodeRank - prevNodeRank;
 
-		size_t prevWidth = (insertNodeRank - prevNodeRank) + 1;
-		size_t insertWidth = (prev->getWidth(level)) - (insertNodeRank - prevNodeRank);
+		size_t prevWidth = distance + 1;
+		size_t insertWidth = (prev->getWidth(level) == 0) ? 0 : (prev->getWidth(level) - distance);
 
 		prev->setNext(level, insertNode);
 		prev->setWidth(level, prevWidth);
@@ -349,9 +350,9 @@ TraverseContext<K>* SkipList<K>::traversePrevNodes(const K key, bool& duplicateK
 		node = node->getNext(level);
 
 		while ((node != nullptr) && (key > node->getKey())) {
-			trail = node;
 			accumulatedRank += trail->getWidth(level);
 
+			trail = node;
 			node = node->getNext(level);
 		}
 		assert(trail != nullptr);
@@ -368,6 +369,58 @@ TraverseContext<K>* SkipList<K>::traversePrevNodes(const K key, bool& duplicateK
 
 	traverseContext->setRank(accumulatedRank);
 	return traverseContext;
+}
+
+template<typename K>
+bool SkipList<K>::validate() const {
+	// first, validate widths
+	std::uint8_t level = m_maxNodeHeight;
+	bool valid = true;
+
+	while (level-- > 0) {
+		SkipListNode<K>* trail = m_head;
+		SkipListNode<K>* node = m_head->getNext(level);
+		SkipListNode<K>* level0 = m_head;
+
+		if (level >= 1) {
+			while (true) {
+				size_t width = 0;
+
+				while (level0 != node) {
+					level0 = level0->getNext(0 /* level */);
+					if (level0 != nullptr) {
+						width++;
+					}
+				}
+			
+				valid = (valid == false) ? false : (trail->getWidth(level) == width);
+				assert(trail->getWidth(level) == width);
+
+				if (node == nullptr) {
+					break;
+				}
+
+				trail = node;
+				node = node->getNext(level);
+			}
+		} else if (level == 0) {
+			level0 = m_head;
+
+			while (level0 != nullptr) {
+				if (level0->getNext(0 /* level */) == nullptr) {
+					valid = (valid == false) ? false : (level0->getWidth(0 /* level */) == 0);
+					assert(level0->getWidth(0 /* level */) == 0);	
+				} else {
+					valid = (valid == false) ? false : (level0->getWidth(0 /* level */) == 1);
+					assert(level0->getWidth(0 /* level */) == 1);	
+				}
+
+				level0 = level0->getNext(0 /* level */);
+			}
+		}
+	}
+
+	return valid;
 }
 
 // explicit instantiation - we know what kinds of keys we will get
