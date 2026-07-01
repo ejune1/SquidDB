@@ -419,6 +419,23 @@ bool SkipList<K>::validate() const {
 			}
 		}
 	}
+	
+	// check that all keys are in order
+	SkipListNode<K>* node = m_head->getNext(0 /* level */);
+	while (node != nullptr) {
+		K key = node->getKey();
+
+		std::uint8_t level = node->getHeight();
+		while (level-- > 0) {
+			SkipListNode<K>* next = node->getNext(level);
+			if (next != nullptr) {
+				valid = (valid == false) ? false : (key <= next->getKey());	
+				assert(key <= next->getKey());
+			}
+		}
+
+		node = node->getNext(0 /* level */);
+	}
 
 	return valid;
 }
