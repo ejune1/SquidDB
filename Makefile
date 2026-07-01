@@ -11,7 +11,7 @@ SAN_FLAGS =
 # ==============================================================================
 # Source and Object Files
 # ==============================================================================
-CORE_SRCS = src/utils/Configuration.cxx src/utils/Logger.cxx src/utils/StringUtils.cxx src/core/SkipListNode.cxx src/core/SkipList.cxx src/core/TraverseContext.cxx src/core/SkipListIterator.cxx
+CORE_SRCS = src/utils/Configuration.cxx src/utils/Logger.cxx src/utils/StringUtils.cxx src/core/SkipListNode.cxx src/core/SkipList.cxx src/core/TraverseContext.cxx src/core/SkipListIterator.cxx src/storage/Column.cxx src/storage/Schema.cxx src/engine/Table.cxx
 MAIN_SRC  = src/main.cxx
 TEST_SRCS = tests/test_main.cxx tests/SkipListTest.cxx
 
