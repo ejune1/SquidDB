@@ -1,6 +1,7 @@
 #include "test/catch.hpp"
 
 #include "core/SkipList.h"
+#include "core/SkipListIterator.h"
 #include "utils/Configuration.h"
 #include "utils/Logger.h"
 
@@ -377,6 +378,47 @@ TEST_CASE("SkipList<int> mixed random, max 10 levels with contains checking", "[
 	}
 
 	REQUIRE(skipList.validate() == true);
+
+	logger.stop();
+}
+
+TEST_CASE("SkipList<int> iterator", "[skiplist]") {
+	utils::Logger& logger = utils::Logger::getInstance();
+	utils::Configuration configuration(logger);
+	configuration.read("./squiddb.conf");
+
+	logger.setLogLevel(configuration.getLogLevel());
+	logger.setOutputMode(configuration.getLogMode(), configuration.getLogFilePath());
+	logger.start();
+
+	core::SkipList<int> skipList(logger, true /* primary */, 10 /* maxNodeHeight */);
+	skipList.initialize();	
+
+	std::vector<int> nums;
+	for (int x = 1; x < 10; x++) {
+		nums.push_back(x * 10);
+		skipList.insert(x * 10, nullptr /* data */, 0 /* size */);
+	}
+
+	// verify begin function
+	auto itBegin = nums.begin();
+	core::SkipListIterator<int> skipListIteratorBegin = skipList.begin();
+	REQUIRE((*itBegin) == (*skipListIteratorBegin));
+
+	// verify different lower bounds match 
+	for (int x = 0; x <= 101; x++) {
+		int lowerBound = x;
+		auto it = std::lower_bound(nums.begin(), nums.end(), lowerBound);
+		core::SkipListIterator<int> skipListIterator = skipList.seek(lowerBound);
+
+		while (it != nums.end()) {
+			REQUIRE((*it) == (*skipListIterator));
+			it++;
+			skipListIterator++;
+		}
+
+		REQUIRE(skipListIterator == skipList.end());
+	}
 
 	logger.stop();
 }

@@ -1,6 +1,7 @@
 #ifndef SKIPLIST_H
 #define SKIPLIST_H
 
+#include "core/SkipListIterator.h"
 #include "core/SkipListNode.h"
 #include "core/TraverseContext.h"
 #include "utils/Configuration.h"
@@ -33,7 +34,9 @@ class SkipList {
 		bool contains(const K key) const;
 
 		// iteration and scan (execution engine)
-		// TODO build an iterator
+		SkipListIterator<K> begin() const;
+		SkipListIterator<K> seek(const K key) const;
+		SkipListIterator<K> end() const;
 
 		// statistical (query planner)
 		bool empty() const;

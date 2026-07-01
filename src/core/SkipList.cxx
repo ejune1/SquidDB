@@ -1,5 +1,6 @@
 #include "core/SkipList.h"
 
+#include "core/SkipListIterator.h"
 #include "core/SkipListNode.h"
 #include "utils/Configuration.h"
 #include "utils/Logger.h"
@@ -248,6 +249,61 @@ bool SkipList<K>::contains(const K key) const {
 	SkipListNode<K>* foundNode = findNode(key);
 	
 	return (foundNode != nullptr); 
+}
+
+template<typename K>
+SkipListIterator<K> SkipList<K>::begin() const {
+	if (m_initialized == false) {
+		throw std::runtime_error("SkipList<K>::begin not initialized");
+	}
+
+	return SkipListIterator<K>(m_head->getNext(0 /* level */));
+}
+
+template<typename K>
+SkipListIterator<K> SkipList<K>::seek(const K key) const {
+	if (m_initialized == false) {
+		throw std::runtime_error("SkipList<K>::seek not initialized");
+	}
+
+	SkipListNode<K>* trail = m_head;
+	SkipListNode<K>* node = m_head;
+	SkipListNode<K>* lowerBound = nullptr;
+
+	std::uint8_t level = m_maxNodeHeight;
+	while (level-- > 0) {
+		node = node->getNext(level);
+
+		while ((node != nullptr) && (key > node->getKey())) {
+			trail = node;
+			node = node->getNext(level);
+		}
+		assert(trail != nullptr);
+
+		if ((node != nullptr) && (key == node->getKey())) {
+			lowerBound = node;
+			break;
+		}
+		assert((node == nullptr) || (key < node->getKey()));
+
+		if (level == 0) {
+			lowerBound = node;
+			break;
+		}
+
+		node = trail;
+	}
+
+	return SkipListIterator<K>(lowerBound);
+}
+
+template<typename K>
+SkipListIterator<K> SkipList<K>::end() const {
+	if (m_initialized == false) {
+		throw std::runtime_error("SkipList<K>::end not initialized");
+	}
+
+	return SkipListIterator<K>(nullptr);
 }
 
 template<typename K>
