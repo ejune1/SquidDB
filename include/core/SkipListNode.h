@@ -13,6 +13,8 @@ class SkipListNode {
 		~SkipListNode();
 
 		K getKey() const;
+		// TODO fix with opaque keys (return internal data)
+		const K* getKeyRef() const;
 
 		SkipListNode<K>* getNext(const std::uint8_t level) const;
 		void setNext(const std::uint8_t level, SkipListNode<K>* next);
@@ -22,7 +24,7 @@ class SkipListNode {
 
 		std::uint8_t getHeight() const;
 
-		void* getData();
+		void* getData() const;
 		void setData(void* data, std::uint16_t size);
 
 		std::uint16_t getSize() const;

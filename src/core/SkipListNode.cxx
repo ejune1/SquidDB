@@ -40,6 +40,11 @@ K SkipListNode<K>::getKey() const {
 }
 
 template<typename K>
+const K* SkipListNode<K>::getKeyRef() const {
+	return &m_key;
+}
+
+template<typename K>
 SkipListNode<K>* SkipListNode<K>::getNext(const std::uint8_t level) const {
 	assert(level < m_height);
 	return m_next[level];
@@ -69,7 +74,7 @@ std::uint8_t SkipListNode<K>::getHeight() const {
 }
 
 template<typename K>
-void* SkipListNode<K>::getData() {
+void* SkipListNode<K>::getData() const {
 	return m_data;
 }
 

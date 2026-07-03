@@ -47,6 +47,27 @@ bool SkipListIterator<K>::operator!=(const SkipListIterator<K>& other) const {
 	return (current != other.current);
 }
 
+template<typename K>
+bool SkipListIterator<K>::valid() const {
+	return (current != nullptr);
+}
+
+template<typename K>
+void SkipListIterator<K>::next() {
+	current = current->getNext(0 /* level */);
+}
+
+template<typename K>
+const void* SkipListIterator<K>::getKey() const {
+	// TODO fix this in opaque keys and return the internal data
+	return (void*) current->getKeyRef();
+}
+
+template<typename K>
+const void* SkipListIterator<K>::getData() const {
+	return current->getData();
+}
+
 // explicit instantiation - we know what kinds of keys we will get
 template class SkipListIterator<int>;
 

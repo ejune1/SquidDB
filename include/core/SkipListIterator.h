@@ -1,6 +1,7 @@
 #ifndef SKIPLISTITERATOR_H
 #define SKIPLISTITERATOR_H
 
+#include "engine/TableIterator.h"
 #include "core/SkipListNode.h"
 
 #include <iterator>
@@ -8,7 +9,7 @@
 namespace squiddb { namespace core {
 
 template<typename K>
-class SkipListIterator {
+class SkipListIterator : engine::TableIterator {
 	public:
 		using iterator_category = std::forward_iterator_tag;
 		using value_type        = K;
@@ -25,9 +26,16 @@ class SkipListIterator {
 
 		bool operator==(const SkipListIterator<K>& other) const;
 		bool operator!=(const SkipListIterator<K>& other) const;	
+
+		// TableIterator
+		bool valid() const override;
+		void next() override;
+		
+		const void* getKey() const override;
+		const void* getData() const override;
 	
 	private:
-		SkipListNode<K>* current;
+		const SkipListNode<K>* current;
 };
 
 }} // namespace
