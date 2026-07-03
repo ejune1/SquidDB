@@ -8,8 +8,8 @@ namespace squiddb { namespace storage {
 class Column {
 	public:
 		enum class ColumnType {
-			INT = 0,
-			LONG = 1,
+			INT32 = 0,
+			INT64 = 1,
 			FLOAT = 2,
 			STRING = 3,
 			UNKNOWN = 4
