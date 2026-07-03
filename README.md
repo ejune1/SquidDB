@@ -28,6 +28,7 @@ graph LR
 ## 🚀 Current Project Status
 
 - [x] **Core Indexing:** SkipList insertion, removal, lookups, widths, iterators (in progress).
+- [X] **Storage Layer:** Table and row data, log data, schema, recovery and startup (in progress).
 - [ ] **Network Layer:** Multi-threaded TCP connection handling using basic sockets (planned).
 - [ ] **SQL Frontend:** Lexer and parser for a subset of SQL queries (planned).
 - [ ] **Execution Engine:** TBD (planned).
@@ -45,10 +46,11 @@ graph LR
 - Error recovery (and startup for now)
 - File rollover (reorg)
 - Remove inline deletes
-- Epoch for safe node deletion in batched
+- Epoch for safe node deletion in batches
+- Purge for cache pressure
 - Opaque keys (value and pointer for large keys)
 - Support secondary keys via opaque keys
-- CAS (compare and swap)for node add remove (lockless algorithms)
+- CAS (compare and swap) for node add remove (lockless algorithms)
 - MVCC (versioning for information (ACID) information requires transaction ID)
 - Custom spin lock in node (if needed)
 - Arena allocation for nodes / large keys (placement new?)
