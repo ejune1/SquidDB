@@ -34,11 +34,14 @@ graph LR
 - [ ] **Execution Engine:** TBD (planned).
 
 ## Recently Completed
+
 - Unit test infrastructure
 - SkipList structure and basic operations (single threaded)
 - Pointer widths (for rank and cardinality estimation)
+- Switch from make to cmake
 
 ## Immediate Tasks (in no particular order)
+
 - Schema create/read
 - Basic Table class structure
 - Row writes to disk
@@ -60,16 +63,52 @@ graph LR
 ## 🛠️ Getting Started
 
 ### Prerequisites
-* GCC
-* CMake
+
+* GCC (C++ 17+)
+* CMake 3.12+
 * Catch2 (included)
 
-### Building the Project
+## Building and Running
+
+This project uses the CMake build system. All compilation steps should be performed out-of-source within a `build` directory.
+
+### 1. Project Configuration
+
+Before compiling, generate the build files. Run this once from the project root:
+
 ```bash
-make
+cmake -B build -S .
 ```
 
-### Running Tests
+### 2. Build Instructions
+
+#### Build Everything (App + Tests)
+To build both the production application and the test suite:
 ```bash
-make test
+cmake --build build
+```
+
+#### Build Production Only
+To compile only the production application executable:
+```bash
+cmake --build build --target squid
+```
+
+#### Build Test Suite Only
+To compile only the tests:
+```bash
+cmake --build build --target test_runner
+```
+
+### 3. Running the Project
+
+#### Run the Production Binary
+```bash
+./build/squid
+```
+
+#### Run the Test Suite (Verbose Mode)
+Run the test binary directly to see full Catch2 output, including passing assertions:
+```bash
+./build/test_runner -s
 ```
