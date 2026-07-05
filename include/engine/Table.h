@@ -24,15 +24,16 @@ class Table {
 
 		bool updateRow(const void* key, void* row);
 
-		TableIterator scan() const;
-		TableIterator scan(std::string index) const;
-		TableIterator rangeScan(const void* startKey, const void* endKey) const;
+		// uses primary
+		TableIterator* scan() const;
+		TableIterator* scan(const std::string index) const;
+		TableIterator* rangeScan(const std::string index, const void* startKey, const void* endKey) const;
 
 	private:
 		std::string m_name;
 		storage::Schema m_schema;
 		
-		Index m_primary;
+		Index* m_primary;
 		Index* m_secondary;
 		std::uint8_t m_secondarySize;
 };

@@ -2,6 +2,7 @@
 
 #include "core/SkipListIterator.h"
 #include "core/SkipListNode.h"
+#include "engine/TableIterator.h"
 #include "utils/Configuration.h"
 #include "utils/Logger.h"
 
@@ -10,6 +11,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstdlib>
+#include <optional>
 #include <stdexcept>
 #include <string>
 
@@ -258,11 +260,11 @@ SkipListIterator<K> SkipList<K>::begin() const {
 		throw std::runtime_error("SkipList<K>::begin not initialized");
 	}
 
-	return SkipListIterator<K>(m_head->getNext(0 /* level */));
+	return SkipListIterator<K>(m_head->getNext(0 /* level */), std::nullopt);
 }
 
 template<typename K>
-SkipListIterator<K> SkipList<K>::seek(const K key) const {
+SkipListIterator<K> SkipList<K>::seek(const K key, const std::optional<K> endKey) const {
 	if (m_initialized == false) {
 		throw std::runtime_error("SkipList<K>::seek not initialized");
 	}
@@ -295,7 +297,7 @@ SkipListIterator<K> SkipList<K>::seek(const K key) const {
 		node = trail;
 	}
 
-	return SkipListIterator<K>(lowerBound);
+	return SkipListIterator<K>(lowerBound, endKey);
 }
 
 template<typename K>
@@ -304,7 +306,7 @@ SkipListIterator<K> SkipList<K>::end() const {
 		throw std::runtime_error("SkipList<K>::end not initialized");
 	}
 
-	return SkipListIterator<K>(nullptr);
+	return SkipListIterator<K>(nullptr, std::nullopt);
 }
 
 template<typename K>
@@ -389,6 +391,44 @@ size_t SkipList<K>::memoryUsageMB() const {
 	}
 
 	return totalBytes / (1024 * 1024);
+}
+
+template<typename K>
+bool SkipList<K>::insertRow(const void* key, void* row, const std::uint16_t size) {
+	const K insertKey = *static_cast<const K*>(key);
+	std::byte* insertData = static_cast<std::byte*>(row);
+
+	return insert(insertKey, insertData, size);
+}
+
+template<typename K>
+bool SkipList<K>::deleteRow(const void* key) {
+	const K deleteKey = *static_cast<const K*>(key);
+
+	return remove(deleteKey);
+}
+
+template<typename K>
+bool SkipList<K>::updateRow(const void* key, void* row, const std::uint16_t size) {
+	const K updateKey = *static_cast<const K*>(key);
+	std::byte* updateData = static_cast<std::byte*>(row);
+
+	return update(updateKey, updateData, size);
+}
+
+template<typename K>
+engine::TableIterator* SkipList<K>::scan() const {
+	SkipListIterator<K>* tableIterator = new SkipListIterator<K>(begin());
+	return tableIterator;
+}
+
+template<typename K>
+engine::TableIterator* SkipList<K>::rangeScan(const void* startKey, const void* endKey) const {
+	const K rangeStartKey = *static_cast<const K*>(startKey);
+	const K rangeEndKey = *static_cast<const K*>(endKey);
+	
+	SkipListIterator<K>* tableIterator = new SkipListIterator<K>(seek(rangeStartKey, rangeEndKey));
+	return tableIterator;
 }
 
 template<typename K>

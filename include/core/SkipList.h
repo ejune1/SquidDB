@@ -4,18 +4,21 @@
 #include "core/SkipListIterator.h"
 #include "core/SkipListNode.h"
 #include "core/TraverseContext.h"
+#include "engine/Index.h"
+#include "engine/TableIterator.h"
 #include "utils/Configuration.h"
 #include "utils/Logger.h"
 
 #include <atomic>
 #include <cstddef>
 #include <cstdint>
+#include <optional>
 #include <random>
 
 namespace squiddb { namespace core {
 
 template<typename K>
-class SkipList {
+class SkipList : public engine::Index {
 	public:
 		SkipList(utils::Logger& logger, const bool primaryIndex, const uint8_t maxNodeHeight);
 		~SkipList();
@@ -36,7 +39,7 @@ class SkipList {
 
 		// iteration and scan (execution engine)
 		SkipListIterator<K> begin() const;
-		SkipListIterator<K> seek(const K key) const;
+		SkipListIterator<K> seek(const K key, const std::optional<K> endKey) const;
 		SkipListIterator<K> end() const;
 
 		// statistical (query planner)
@@ -44,6 +47,14 @@ class SkipList {
 		size_t size(const bool calculate = false) const;
 		size_t estimateRangeCardinality(const K lowKey, const K highKey) const;
 		size_t memoryUsageMB() const;
+
+		// Index methods
+		bool insertRow(const void* key, void* row, const std::uint16_t size) override;
+		bool deleteRow(const void* key) override;
+		bool updateRow(const void* key, void* row, const std::uint16_t size) override;
+
+		engine::TableIterator* scan() const;
+		engine::TableIterator* rangeScan(const void* startKey, const void* endKey) const;
 
 		// this needs to be fast - called on every new node
 		static inline std::uint8_t generateNodeHeight(std::uint8_t maxNodeHeight) {

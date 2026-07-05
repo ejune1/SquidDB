@@ -6,11 +6,12 @@
 
 #include <cstddef>
 #include <iterator>
+#include <optional>
 
 namespace squiddb { namespace core {
 
 template<typename K>
-class SkipListIterator : engine::TableIterator {
+class SkipListIterator : public engine::TableIterator {
 	public:
 		using iterator_category = std::forward_iterator_tag;
 		using value_type        = K;
@@ -19,7 +20,7 @@ class SkipListIterator : engine::TableIterator {
 		using reference         = K;
 
 		SkipListIterator();
-		SkipListIterator(SkipListNode<K>* startNode);
+		SkipListIterator(SkipListNode<K>* startNode, std::optional<int> endKey);
 
 		reference operator*() const;
 		SkipListIterator<K>& operator++();
@@ -34,9 +35,10 @@ class SkipListIterator : engine::TableIterator {
 		
 		const void* getKey() const override;
 		const void* getData() const override;
-	
+
 	private:
-		const SkipListNode<K>* current;
+		const SkipListNode<K>* m_current;
+		std::optional<K> m_endKey;
 };
 
 }} // namespace

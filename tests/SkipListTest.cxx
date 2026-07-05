@@ -6,6 +6,7 @@
 #include "utils/Logger.h"
 
 #include <algorithm>
+#include <optional>
 #include <random>
 #include <vector>
 
@@ -409,7 +410,7 @@ TEST_CASE("SkipList<int> iterator", "[skiplist]") {
 	for (int x = 0; x <= 101; x++) {
 		int lowerBound = x;
 		auto it = std::lower_bound(nums.begin(), nums.end(), lowerBound);
-		core::SkipListIterator<int> skipListIterator = skipList.seek(lowerBound);
+		core::SkipListIterator<int> skipListIterator = skipList.seek(lowerBound, std::nullopt);
 
 		while (it != nums.end()) {
 			REQUIRE((*it) == (*skipListIterator));
