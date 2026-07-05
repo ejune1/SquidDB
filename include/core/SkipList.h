@@ -8,6 +8,7 @@
 #include "utils/Logger.h"
 
 #include <atomic>
+#include <cstddef>
 #include <cstdint>
 #include <random>
 
@@ -25,12 +26,12 @@ class SkipList {
 		// data modification (execution engine)
 		
 		// note size of data limited to 65,535
-		bool insert(const K key, void* data, const std::uint16_t size, std::uint8_t nodeHeight = 0);
+		bool insert(const K key, std::byte* data, const std::uint16_t size, std::uint8_t nodeHeight = 0);
 		bool remove(const K key);
-		bool update(const K key, void* data, const std::uint16_t size);
+		bool update(const K key, std::byte* data, const std::uint16_t size);
 
 		// point lookup and verification
-		void* find(const K key) const;
+		std::byte* find(const K key) const;
 		bool contains(const K key) const;
 
 		// iteration and scan (execution engine)

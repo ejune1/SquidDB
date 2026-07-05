@@ -9,7 +9,7 @@ namespace squiddb { namespace core {
 template<typename K>
 class SkipListNode {
 	public:
-		SkipListNode(const K key, void* data, std::uint16_t size, const std::uint8_t height);
+		SkipListNode(const K key, std::byte* data, std::uint16_t size, const std::uint8_t height);
 		~SkipListNode();
 
 		K getKey() const;
@@ -24,15 +24,15 @@ class SkipListNode {
 
 		std::uint8_t getHeight() const;
 
-		void* getData() const;
-		void setData(void* data, std::uint16_t size);
+		std::byte* getData() const;
+		void setData(std::byte* data, std::uint16_t size);
 
 		std::uint16_t getSize() const;
 
 	private:
 		const K m_key;
 
-		void* m_data;
+		std::byte* m_data;
 		std::uint16_t m_size;
 
 		const std::uint8_t m_height;

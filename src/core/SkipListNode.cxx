@@ -7,7 +7,7 @@
 namespace squiddb { namespace core {
 
 template<typename K>
-SkipListNode<K>::SkipListNode(const K key, void* data, std::uint16_t size, const std::uint8_t height)
+SkipListNode<K>::SkipListNode(const K key, std::byte* data, std::uint16_t size, const std::uint8_t height)
 	: m_key(key), m_height(height) {
 	m_data = data;
 	m_size = size;
@@ -74,12 +74,12 @@ std::uint8_t SkipListNode<K>::getHeight() const {
 }
 
 template<typename K>
-void* SkipListNode<K>::getData() const {
+std::byte* SkipListNode<K>::getData() const {
 	return m_data;
 }
 
 template<typename K>
-void SkipListNode<K>::setData(void* data, std::uint16_t size) {
+void SkipListNode<K>::setData(std::byte* data, std::uint16_t size) {
 	m_data = data;
 	m_size = size;
 }

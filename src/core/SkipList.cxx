@@ -7,6 +7,7 @@
 
 #include <atomic>
 #include <cassert>
+#include <cstddef>
 #include <cstdint>
 #include <cstdlib>
 #include <stdexcept>
@@ -31,7 +32,7 @@ SkipList<K>::~SkipList() {
 		SkipListNode<K>* nodeToDelete = node;
 		node = node->getNext(0);
 
-		void* dataToDelete = nodeToDelete->getData();
+		std::byte* dataToDelete = nodeToDelete->getData();
 		delete nodeToDelete;
 		
 		if (dataToDelete != nullptr) {
@@ -63,7 +64,7 @@ void SkipList<K>::initialize() {
 }
 
 template<typename K>
-bool SkipList<K>::insert(const K key, void* data, const std::uint16_t size, std::uint8_t nodeHeight) {
+bool SkipList<K>::insert(const K key, std::byte* data, const std::uint16_t size, std::uint8_t nodeHeight) {
 	if (m_initialized == false) {
 		throw std::runtime_error("SkipList<K>::insert not initialized");
 	}
@@ -175,7 +176,7 @@ bool SkipList<K>::remove(const K key) {
 	}
 	assert(removeNode != nullptr);
 
-	void* dataToDelete = removeNode->getData();
+	std::byte* dataToDelete = removeNode->getData();
 	delete removeNode;
 
 	if (dataToDelete != nullptr) {
@@ -189,7 +190,7 @@ bool SkipList<K>::remove(const K key) {
 }
 
 template<typename K>
-bool SkipList<K>::update(const K key, void* data, const std::uint16_t size) {
+bool SkipList<K>::update(const K key, std::byte* data, const std::uint16_t size) {
 	if (m_initialized == false) {
 		throw std::runtime_error("SkipList<K>::update not initialized");
 	}
@@ -200,7 +201,7 @@ bool SkipList<K>::update(const K key, void* data, const std::uint16_t size) {
 	SkipListNode<K>* foundNode = findNode(key);
 
 	if (foundNode != nullptr) {
-		void* dataToDelete = foundNode->getData();
+		std::byte* dataToDelete = foundNode->getData();
 		foundNode->setData(data, size);
 
 		if (dataToDelete != nullptr) {
@@ -219,7 +220,7 @@ bool SkipList<K>::update(const K key, void* data, const std::uint16_t size) {
 }
 
 template<typename K>
-void* SkipList<K>::find(const K key) const {
+std::byte* SkipList<K>::find(const K key) const {
 	if (m_initialized == false) {
 		throw std::runtime_error("SkipList<K>::find not initialized");
 	}
@@ -230,7 +231,7 @@ void* SkipList<K>::find(const K key) const {
 	SkipListNode<K>* foundNode = findNode(key);
 
 	if (foundNode != nullptr) {
-		void* data = foundNode->getData();
+		std::byte* data = foundNode->getData();
 		return data;
 	}
 

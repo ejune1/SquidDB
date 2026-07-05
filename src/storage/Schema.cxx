@@ -2,6 +2,7 @@
 
 #include "storage/Column.h"
 
+#include <cstddef>
 #include <cstdint>
 #include <cstring>
 
@@ -24,20 +25,20 @@ void Schema::read(const std::string /* filePath*/) {
 	// TODO
 }
 
-std::int32_t Schema::readInt32(const std::string columnName, const void* row) {
+std::int32_t Schema::readInt32(const std::string columnName, const std::byte* row) {
 	size_t offset = m_offset.at(columnName);
 
 	std::int32_t value = 0;
-	memcpy(&value, ((const std::uint8_t*)row) + offset, sizeof(std::int32_t));
+	memcpy(&value, row + offset, sizeof(std::int32_t));
 	
 	return value;
 }
 
-std::int64_t Schema::readInt64(const std::string columnName, const void* row) {
+std::int64_t Schema::readInt64(const std::string columnName, const std::byte* row) {
 	size_t offset = m_offset.at(columnName);
 
 	std::int64_t value = 0;
-	memcpy(&value, ((const std::uint8_t*)row) + offset, sizeof(std::int64_t));
+	memcpy(&value, row + offset, sizeof(std::int64_t));
 
 	return value;
 }

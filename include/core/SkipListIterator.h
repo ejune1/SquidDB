@@ -4,6 +4,7 @@
 #include "engine/TableIterator.h"
 #include "core/SkipListNode.h"
 
+#include <cstddef>
 #include <iterator>
 
 namespace squiddb { namespace core {

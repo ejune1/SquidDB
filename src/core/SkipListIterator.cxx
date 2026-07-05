@@ -60,7 +60,7 @@ void SkipListIterator<K>::next() {
 template<typename K>
 const void* SkipListIterator<K>::getKey() const {
 	// TODO fix this in opaque keys and return the internal data
-	return (void*) current->getKeyRef();
+	return static_cast<const void*>(current->getKeyRef());
 }
 
 template<typename K>

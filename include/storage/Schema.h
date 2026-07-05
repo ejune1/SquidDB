@@ -18,8 +18,8 @@ class Schema {
 		void addColumn(const Column column);
 		void read(const std::string filePath);
 
-		std::int32_t readInt32(const std::string columnName, const void* row);
-		std::int64_t readInt64(const std::string columnName, const void* row);
+		std::int32_t readInt32(const std::string columnName, const std::byte* row);
+		std::int64_t readInt64(const std::string columnName, const std::byte* row);
 		// TODO reads for other data types
 
 	private:
