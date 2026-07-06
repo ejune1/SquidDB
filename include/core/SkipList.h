@@ -39,7 +39,7 @@ class SkipList : public engine::Index {
 
 		// iteration and scan (execution engine)
 		SkipListIterator<K> begin() const;
-		SkipListIterator<K> seek(const K key, const std::optional<K> endKey) const;
+		SkipListIterator<K> seek(const K key, const std::optional<K> endKey = std::nullopt) const;
 		SkipListIterator<K> end() const;
 
 		// statistical (query planner)

@@ -55,7 +55,7 @@ graph LR
 - Support secondary keys via opaque keys
 - CAS (compare and swap) for node add remove (lockless algorithms)
 - MVCC (versioning for information (ACID) information requires transaction ID)
-- Custom spin lock in node (if needed)
+- Custom spin lock in node (if needed) for write-write and background threads
 - Arena allocation for nodes / large keys (placement new?)
 - Ref count info for multiple indexes (share infos)
 - Serialize SkipList structure to disk for faster restarts
