@@ -3,6 +3,7 @@
 
 #include "storage/Column.h"
 
+#include <cstddef>
 #include <cstdint>
 #include <string>
 #include <unordered_map>
@@ -15,8 +16,10 @@ class Schema {
 		Schema();
 		~Schema() = default;
 
-		void addColumn(const Column column);
 		void read(const std::string filePath);
+		void write(const std::string filePath);
+
+		void addColumn(const Column column);
 
 		std::int32_t readInt32(const std::string columnName, const std::byte* row);
 		std::int64_t readInt64(const std::string columnName, const std::byte* row);

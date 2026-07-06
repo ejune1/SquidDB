@@ -5,10 +5,21 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include <string>
+#include <unordered_map>
+#include <vector>
 
 namespace squiddb { namespace storage {
 
 Schema::Schema() { }
+
+void Schema::read(const std::string /* filePath */) {
+	// TODO
+}
+
+void Schema::write(const std::string /* filePath */) {
+	// TODO
+}
 
 void Schema::addColumn(const Column column) {
 	size_t offset = 0;
@@ -19,10 +30,6 @@ void Schema::addColumn(const Column column) {
 
 	m_offset[column.getName()] = offset;
 	m_column.push_back(column);
-}
-
-void Schema::read(const std::string /* filePath*/) {
-	// TODO
 }
 
 std::int32_t Schema::readInt32(const std::string columnName, const std::byte* row) {
