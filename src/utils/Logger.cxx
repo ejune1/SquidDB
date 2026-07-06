@@ -127,7 +127,7 @@ void Logger::setLogLevel(const Logger::LogLevel logLevel) {
 	m_logLevel = logLevel;
 }
 
-Logger::LogLevel Logger::parseLogLevel(const std::string& logLevelString) const {
+Logger::LogLevel Logger::parseLogLevel(const std::string& logLevelString) {
 	std::string logLevelStringUpper = StringUtils::toUpper(logLevelString);	
 
 	if (logLevelStringUpper == "TRACE") {
@@ -153,7 +153,7 @@ Logger::LogLevel Logger::parseLogLevel(const std::string& logLevelString) const 
 	return LogLevel::Unknown;
 }
 
-Logger::LogMode Logger::parseLogMode(const std::string& logModeString) const {
+Logger::LogMode Logger::parseLogMode(const std::string& logModeString) {
 	std::string logModeStringUpper = StringUtils::toUpper(logModeString);
 
 	if (logModeStringUpper == "TERMINAL") {
@@ -211,7 +211,7 @@ void Logger::run() {
 	}
 }
 
-std::string Logger::logLevelString(const Logger::LogLevel logLevel) const {
+std::string Logger::logLevelString(const Logger::LogLevel logLevel) {
 	switch (logLevel) {
 		case LogLevel::Trace:   return "TRACE";
 		case LogLevel::Debug:   return "DEBUG";

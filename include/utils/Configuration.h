@@ -16,7 +16,8 @@ class Configuration {
 			LogMode = 2,
 			MaxMemoryMB = 3,
 			MaxNodeHeight = 4,
-			Unknown = 5
+			DataPath = 5,
+			Unknown = 6
 		};
 
 		Configuration(Logger& logger);
@@ -33,6 +34,8 @@ class Configuration {
 		unsigned int getMaxMemoryMB() const;
 		std::uint8_t getMaxNodeHeight() const;
 
+		std::string getDataPath() const;
+
 	private:
 		std::string configurationKeyString(const ConfigurationKey configurationKey) const;
 		ConfigurationKey parseConfigurationKey(const std::string& keyString) const;
@@ -46,6 +49,8 @@ class Configuration {
 
 		unsigned int m_maxMemoryMB;
 		std::uint8_t m_maxNodeHeight; 
+
+		std::string m_dataPath;
 };
 
 }} // namespace

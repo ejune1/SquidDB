@@ -8,28 +8,38 @@ namespace squiddb { namespace storage {
 class Column {
 	public:
 		enum class ColumnType {
-			INT32 = 0,
-			INT64 = 1,
-			FLOAT = 2,
-			STRING = 3,
-			UNKNOWN = 4
+			Int32 = 0,
+			Int64 = 1,
+			Float = 2,
+			String = 3,
+			Unknown = 4
 		};
 
-		Column(const std::string name, const size_t size, const ColumnType columnType, bool primaryKey, bool secondaryKey);
+		enum class KeyType {
+			None = 0,
+			Primary = 1,
+			Secondary = 2,
+			Unknown = 3
+		};
+
+		Column(const std::string name, const size_t size, const ColumnType columnType, KeyType keyType);
 
 		std::string getName() const;
 		size_t getSize() const;
 		ColumnType getColumnType() const;
-		bool getPrimaryKey() const;
-		bool getSecondaryKey() const;
+		KeyType getKeyType() const;
+
+		static std::string columnTypeString(const ColumnType columnType);
+		static ColumnType parseColumnType(const std::string columnTypeString);
+
+		static std::string keyTypeString(const KeyType keyType);
+		static KeyType parseKeyType(const std::string keyTypeString);
 
 	private:
 		std::string m_name;
 		size_t m_size;
 		ColumnType m_type;
-
-		bool m_primaryKey;
-		bool m_secondaryKey;
+		KeyType m_keyType;
 };
 
 }} // namespace

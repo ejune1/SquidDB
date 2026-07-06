@@ -2,6 +2,7 @@
 #define SCHEMA_H
 
 #include "storage/Column.h"
+#include "utils/Logger.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -13,7 +14,7 @@ namespace squiddb { namespace storage {
 
 class Schema {
 	public:
-		Schema();
+		Schema(utils::Logger& logger);
 		~Schema() = default;
 
 		void read(const std::string filePath);
@@ -26,6 +27,8 @@ class Schema {
 		// TODO reads for other data types
 
 	private:
+		utils::Logger& m_logger;
+
 		std::vector<Column> m_column;
 		std::unordered_map<std::string, size_t> m_offset;
 };

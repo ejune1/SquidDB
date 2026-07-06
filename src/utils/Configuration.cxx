@@ -5,6 +5,7 @@
 
 #include <cstdint>
 #include <fstream>
+#include <stdexcept>
 #include <string>
 
 namespace squiddb { namespace utils {
@@ -17,6 +18,10 @@ void Configuration::read(std::string filename) {
 	std::ifstream file(m_filename);
 	std::string line;
 	int lineNum = 0;
+
+	if (file.is_open() == false) {
+		throw std::runtime_error("Configuration::read unable to read file " + filename);
+	}
 
 	while (std::getline(file, line)) {
 		lineNum++;
@@ -61,6 +66,10 @@ void Configuration::read(std::string filename) {
 				m_maxNodeHeight = std::stoi(value);
 				m_logger.log(Logger::LogLevel::Info, "Configuration::read got key: MAXNODEHEIGHT value: " + value);
 				break;
+			case ConfigurationKey::DataPath:
+				m_dataPath = value;
+				m_logger.log(Logger::LogLevel::Info, "Configuration::read got key: DATAPATH value: " + value);
+				break;
 			case ConfigurationKey::Unknown:
 				m_logger.log(Logger::LogLevel::Warn, "Configuration::read got bad config key: " + key);
 				break;
@@ -92,6 +101,10 @@ std::uint8_t Configuration::getMaxNodeHeight() const {
 	return m_maxNodeHeight;
 }
 
+std::string Configuration::getDataPath() const {
+	return m_dataPath;
+}
+
 std::string Configuration::configurationKeyString(const ConfigurationKey configurationKey) const {
 	switch (configurationKey) {
 		case ConfigurationKey::LogFilePath:   return "LOGFILEPATH";
@@ -99,6 +112,7 @@ std::string Configuration::configurationKeyString(const ConfigurationKey configu
 		case ConfigurationKey::LogMode:       return "LOGMODE";
 		case ConfigurationKey::MaxMemoryMB:   return "MAXMEMORYMB";
 		case ConfigurationKey::MaxNodeHeight: return "MAXNODEHEIGHT";
+		case ConfigurationKey::DataPath:      return "DATAPATH";
 		case ConfigurationKey::Unknown:       return "UNKNOWN";
 	}
 	return "UNKNOWN";
@@ -125,6 +139,10 @@ Configuration::ConfigurationKey Configuration::parseConfigurationKey(const std::
 
 	if (keyStringUpper == "MAXNODEHEIGHT") {
 		return ConfigurationKey::MaxNodeHeight;
+	}
+
+	if (keyStringUpper == "DATAPATH") {
+		return ConfigurationKey::DataPath;
 	}
 
 	return ConfigurationKey::Unknown;

@@ -45,8 +45,8 @@ class Logger {
 		LogLevel getLogLevel() const;
 		void setLogLevel(const LogLevel logLevel);
 
-		LogLevel parseLogLevel(const std::string& logLevelString) const;
-		LogMode parseLogMode(const std::string& logModeString) const;
+		static LogLevel parseLogLevel(const std::string& logLevelString);
+		static LogMode parseLogMode(const std::string& logModeString);
 	
 	private:
 		struct LogItem {
@@ -63,7 +63,7 @@ class Logger {
 
 		void run();
 
-		std::string logLevelString(const LogLevel logLevel) const;
+		static std::string logLevelString(const LogLevel logLevel);
 
 		LogMode m_logMode;
 		std::string m_filename;
