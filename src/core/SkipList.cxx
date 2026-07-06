@@ -1,5 +1,6 @@
 #include "core/SkipList.h"
 
+#include "core/RowInfo.h"
 #include "core/SkipListIterator.h"
 #include "core/SkipListNode.h"
 #include "engine/TableIterator.h"
@@ -27,19 +28,31 @@ SkipList<K>::SkipList(utils::Logger& logger, const bool primaryIndex, const std:
 
 template<typename K>
 SkipList<K>::~SkipList() {
-	// SKipList owns all nodes, keys, values
+	// SKipList owns all nodes, keys, row infos, values
 	SkipListNode<K>* node = m_head;
 
 	while (node != nullptr) {
 		SkipListNode<K>* nodeToDelete = node;
 		node = node->getNext(0);
 
-		std::byte* dataToDelete = nodeToDelete->getData();
-		delete nodeToDelete;
-		
-		if (dataToDelete != nullptr) {
-			std::free(dataToDelete);
+		RowInfo* rowInfo = nodeToDelete->getRowInfo();
+		nodeToDelete->setRowInfo(nullptr);
+
+		while (rowInfo != nullptr) {
+			RowInfo* rowInfoToDelete = rowInfo;
+			rowInfo = rowInfo->getNext();
+
+			std::byte* dataToDelete = rowInfoToDelete->getData();
+			rowInfoToDelete->setData(nullptr, 0 /* size */);
+
+			if (dataToDelete != nullptr) {
+				std::free(dataToDelete);
+			}
+
+			delete rowInfoToDelete;
 		}
+
+		delete nodeToDelete;	
 	}
 
 	m_head = nullptr;
@@ -60,7 +73,7 @@ void SkipList<K>::initialize() {
 	m_logger.log(utils::Logger::LogLevel::Info, message);
 
 	// head is dummy object
-	m_head = new SkipListNode<K>(K{}, nullptr, 0, m_maxNodeHeight);
+	m_head = new SkipListNode<K>(K{}, m_maxNodeHeight);
 
 	m_initialized = true;
 }
@@ -93,7 +106,9 @@ bool SkipList<K>::insert(const K key, std::byte* data, const std::uint16_t size,
 		return false;
 	}
 
-	SkipListNode<K>* insertNode = new SkipListNode<K>(key, data, size, nodeHeight);
+	SkipListNode<K>* insertNode = new SkipListNode<K>(key, nodeHeight);
+	RowInfo* rowInfo = new RowInfo(RowInfo::Status::None, data, size);
+	insertNode->setRowInfo(rowInfo);
 
 	// increment width for all levels above the height of this node
 	for (uint8_t level = m_maxNodeHeight - 1; level >= nodeHeight; level--) {
@@ -178,13 +193,23 @@ bool SkipList<K>::remove(const K key) {
 	}
 	assert(removeNode != nullptr);
 
-	std::byte* dataToDelete = removeNode->getData();
-	delete removeNode;
+	RowInfo* rowInfo = removeNode->getRowInfo();
+	removeNode->setRowInfo(nullptr);
 
-	if (dataToDelete != nullptr) {
-		std::free(dataToDelete);
+	while (rowInfo != nullptr) {
+		RowInfo* rowInfoToDelete = rowInfo;
+		rowInfo = rowInfo->getNext();
+
+		std::byte* dataToDelete = rowInfoToDelete->getData();
+		rowInfoToDelete->setData(nullptr, 0 /* size */);
+
+		if (dataToDelete != nullptr) {
+			std::free(dataToDelete);
+		}
+		delete rowInfoToDelete;
 	}
 
+	delete removeNode;
 	delete traverseContext;
 
 	m_size.fetch_sub(1, std::memory_order_relaxed);
@@ -203,8 +228,9 @@ bool SkipList<K>::update(const K key, std::byte* data, const std::uint16_t size)
 	SkipListNode<K>* foundNode = findNode(key);
 
 	if (foundNode != nullptr) {
-		std::byte* dataToDelete = foundNode->getData();
-		foundNode->setData(data, size);
+		// TODO isolate
+		std::byte* dataToDelete = foundNode->getRowInfo()->getData();
+		foundNode->getRowInfo()->setData(data, size);
 
 		if (dataToDelete != nullptr) {
 			std::free(dataToDelete);
@@ -233,7 +259,8 @@ std::byte* SkipList<K>::find(const K key) const {
 	SkipListNode<K>* foundNode = findNode(key);
 
 	if (foundNode != nullptr) {
-		std::byte* data = foundNode->getData();
+		// TODO isolate
+		std::byte* data = foundNode->getRowInfo()->getData();
 		return data;
 	}
 
@@ -383,8 +410,15 @@ size_t SkipList<K>::memoryUsageMB() const {
 		// next pointer array
 		totalBytes += nodeHeight * sizeof(SkipListNode<K>*);
 
-		if ((node != m_head) && (node->getData() != nullptr)) {
-			totalBytes += node->getSize();
+		RowInfo* rowInfo = node->getRowInfo();
+		while (rowInfo != nullptr) {
+			totalBytes += sizeof(RowInfo);
+
+			if (rowInfo->getData() != nullptr) {
+				totalBytes += rowInfo->getSize();
+			}
+
+			rowInfo = rowInfo->getNext();
 		}
 
 		node = node->getNext(0 /* level */);

@@ -80,7 +80,8 @@ const void* SkipListIterator<K>::getKey() const {
 
 template<typename K>
 const void* SkipListIterator<K>::getData() const {
-	return m_current->getData();
+	// TODO isolate
+	return m_current->getRowInfo()->getData();
 }
 
 // explicit instantiation - we know what kinds of keys we will get

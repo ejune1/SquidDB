@@ -1,6 +1,8 @@
 #ifndef SKIPLISTNODE_H
 #define SKIPLISTNODE_H
 
+#include "core/RowInfo.h"
+
 #include <cstddef>
 #include <cstdint>
 
@@ -9,12 +11,15 @@ namespace squiddb { namespace core {
 template<typename K>
 class SkipListNode {
 	public:
-		SkipListNode(const K key, std::byte* data, std::uint16_t size, const std::uint8_t height);
+		SkipListNode(const K key, const std::uint8_t height);
 		~SkipListNode();
 
 		K getKey() const;
 		// TODO fix with opaque keys (return internal data)
 		const K* getKeyRef() const;
+
+		RowInfo* getRowInfo() const;
+		void setRowInfo(RowInfo* rowInfo);
 
 		SkipListNode<K>* getNext(const std::uint8_t level) const;
 		void setNext(const std::uint8_t level, SkipListNode<K>* next);
@@ -24,16 +29,9 @@ class SkipListNode {
 
 		std::uint8_t getHeight() const;
 
-		std::byte* getData() const;
-		void setData(std::byte* data, std::uint16_t size);
-
-		std::uint16_t getSize() const;
-
 	private:
 		const K m_key;
-
-		std::byte* m_data;
-		std::uint16_t m_size;
+		RowInfo* m_rowInfo;
 
 		const std::uint8_t m_height;
 		SkipListNode<K>** m_next;

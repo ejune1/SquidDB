@@ -17,6 +17,7 @@ set(CORE_SRCS
     src/utils/Configuration.cxx
     src/utils/Logger.cxx
     src/utils/StringUtils.cxx
+    src/core/RowInfo.cxx
     src/core/SkipListNode.cxx
     src/core/SkipList.cxx
     src/core/TraverseContext.cxx

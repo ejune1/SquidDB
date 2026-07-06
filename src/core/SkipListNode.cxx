@@ -1,5 +1,7 @@
 #include "core/SkipListNode.h"
 
+#include "core/RowInfo.h"
+
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
@@ -7,12 +9,11 @@
 namespace squiddb { namespace core {
 
 template<typename K>
-SkipListNode<K>::SkipListNode(const K key, std::byte* data, std::uint16_t size, const std::uint8_t height)
+SkipListNode<K>::SkipListNode(const K key, const std::uint8_t height)
 	: m_key(key), m_height(height) {
-	m_data = data;
-	m_size = size;
-
 	assert(m_height > 0);
+
+	m_rowInfo = nullptr;
 
 	m_next = new SkipListNode<K>*[m_height];
 	for (std::uint8_t x = 0; x < m_height; x++) {
@@ -45,6 +46,16 @@ const K* SkipListNode<K>::getKeyRef() const {
 }
 
 template<typename K>
+RowInfo* SkipListNode<K>::getRowInfo() const {
+	return m_rowInfo;
+}
+
+template<typename K>
+void SkipListNode<K>::setRowInfo(RowInfo* rowInfo) {
+	m_rowInfo = rowInfo;
+}
+
+template<typename K>
 SkipListNode<K>* SkipListNode<K>::getNext(const std::uint8_t level) const {
 	assert(level < m_height);
 	return m_next[level];
@@ -71,22 +82,6 @@ void SkipListNode<K>::setWidth(const std::uint8_t level, const size_t width) {
 template<typename K>
 std::uint8_t SkipListNode<K>::getHeight() const {
 	return m_height;
-}
-
-template<typename K>
-std::byte* SkipListNode<K>::getData() const {
-	return m_data;
-}
-
-template<typename K>
-void SkipListNode<K>::setData(std::byte* data, std::uint16_t size) {
-	m_data = data;
-	m_size = size;
-}
-
-template<typename K>
-std::uint16_t SkipListNode<K>::getSize() const {
-	return m_size;
 }
 
 // explicit instantiation - we know what kinds of keys we will get
