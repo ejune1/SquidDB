@@ -7,6 +7,7 @@
 #include "utils/Logger.h"
 
 #include <cstdint>
+#include <string>
 
 namespace squiddb { namespace engine {
 
@@ -15,11 +16,16 @@ class Table {
 		Table(utils::Logger& logger, const std::string path, const std::string name);
 		~Table();
 
-		// read schema from disk if it exists
+		// read schema from disk if it exists, and startup or recover
 		void initialize();
+		// startup is currently recover only
+		void startup();
+		void recover();
 
-		void addColumn(const std::string name, const size_t size, const std::uint8_t columnType);
-		void addIndex(const std::string name, const size_t size, const std::uint8_t columnType, const bool primary);
+		void addColumn(const std::string name, const std::uint16_t size, const std::uint8_t columnType);
+		void addIndex(const std::string name, const std::uint16_t size, const std::uint8_t columnType, const bool primary);
+		// causes schema write
+		void finalizeSchema();
 
 		// force read keys from row
 		bool insertRow(void* row);
@@ -39,9 +45,10 @@ class Table {
 		const std::string m_path;
 		const std::string m_name;
 		storage::Schema m_schema;
+		bool m_schemaFinalized;
 		
 		Index* m_primary;
-		Index* m_secondary;
+		Index** m_secondary;
 		std::uint8_t m_secondarySize;
 };
 
