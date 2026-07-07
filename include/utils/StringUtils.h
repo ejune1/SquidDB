@@ -2,6 +2,7 @@
 #define STRINGUTILS_H
 
 #include <string>
+#include <vector>
 
 namespace squiddb { namespace utils {
 
@@ -11,6 +12,7 @@ class StringUtils {
 
 		static std::string toUpper(const std::string& string);
 		static std::string trim(const std::string& string);
+		static std::vector<std::string> split(const std::string& string, const char separator);
 };
 
 }} // namespace

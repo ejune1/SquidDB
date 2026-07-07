@@ -21,6 +21,7 @@ class Schema {
 		void write(const std::string filePath);
 
 		void addColumn(const Column column);
+		const std::vector<Column>& getColumns() const;
 
 		std::int32_t readInt32(const std::string columnName, const std::byte* row);
 		std::int64_t readInt64(const std::string columnName, const std::byte* row);

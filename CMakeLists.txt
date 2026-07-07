@@ -34,6 +34,7 @@ set(MAIN_SRC
 set(TEST_SRCS
     tests/test_main.cxx
     tests/SkipListTest.cxx
+    tests/SchemaTest.cxx
 )
 
 # 3. Production Binary (squid)

@@ -2,6 +2,7 @@
 
 #include <cctype>
 #include <string>
+#include <vector>
 
 namespace squiddb { namespace utils {
 
@@ -50,6 +51,24 @@ std::string StringUtils::trim(const std::string& string) {
 	}
 
 	return result;
+}
+
+std::vector<std::string> StringUtils::split(const std::string& string, const char separator) {
+	std::vector<std::string> tokens;
+
+	std::string token = "";
+
+	for (char c : string) {
+		if (c == separator) {
+			tokens.push_back(token);
+			token="";
+			continue;
+		}
+		token += c;
+	}
+
+	tokens.push_back(token);
+	return tokens;
 }
 
 }} //namespace

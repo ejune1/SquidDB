@@ -39,10 +39,10 @@ graph LR
 - SkipList structure and basic operations (single threaded)
 - Pointer widths (for rank and cardinality estimation)
 - Switch from make to cmake
+- Schema write/read
 
 ## Immediate Tasks (in no particular order)
 
-- Schema create/read
 - Basic Table class structure
 - Row writes to disk
 - Log writes to disk (WAL)

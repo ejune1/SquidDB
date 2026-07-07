@@ -17,8 +17,43 @@ namespace squiddb { namespace storage {
 
 Schema::Schema(utils::Logger& logger) : m_logger(logger) { }
 
-void Schema::read(const std::string /* filePath */) {
-	// TODO
+void Schema::read(const std::string filePath) {
+	std::ifstream inputFile(filePath);
+	std::string line;
+	int lineNum = 0;
+
+	if (inputFile.is_open() == false) {
+		throw std::runtime_error("Schema::read unable to read file " + filePath);
+	}
+
+	while (std::getline(inputFile, line)) {
+		lineNum++;
+
+		line = utils::StringUtils::trim(line);
+
+		if ((line.empty() == true) || (line[0] == '#')) {
+			continue;
+		}
+
+		std::vector<std::string> tokens = utils::StringUtils::split(line, ':');
+		if (tokens.size() != 4) {
+			throw std::runtime_error("Schema::read invalid schema line " + line);
+		}
+
+		// TODO do some checking here
+		std::string name = tokens[0];
+		std::uint16_t size = static_cast<std::uint16_t>(std::stoul(tokens[1]));
+		Column::ColumnType columnType = Column::parseColumnType(tokens[2]);
+		Column::KeyType keyType = Column::parseKeyType(tokens[3]);
+
+		std::string logString = name + ":" + std::to_string(size) + ":" + Column::columnTypeString(columnType) +
+			":" + Column::keyTypeString(keyType);
+
+		m_logger.log(utils::Logger::LogLevel::Info, "Schema::read got Column " + logString);
+
+		Column column(name, size, columnType, keyType);
+		addColumn(column);
+	}
 }
 
 void Schema::write(const std::string filePath) {
@@ -50,6 +85,10 @@ void Schema::addColumn(const Column column) {
 
 	m_offset[column.getName()] = offset;
 	m_column.push_back(column);
+}
+
+const std::vector<Column>& Schema::getColumns() const {
+	return m_column;
 }
 
 std::int32_t Schema::readInt32(const std::string columnName, const std::byte* row) {
