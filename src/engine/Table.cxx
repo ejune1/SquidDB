@@ -196,6 +196,8 @@ void Table::commit() {
 
 	commitLogValue();
 	commitMemory();
+
+	transaction->committed();
 	#endif
 }
 
@@ -280,6 +282,7 @@ void Table::commitLogValue() {
 
 		keyRow->rowInfo->setFileIndex(vsIndex);
 		keyRow->rowInfo->setFilePosition(vsPosition);
+		keyRow->setDirty(true);
 
 		vsPosition = vsFile->getPosition();
 	}
@@ -301,8 +304,6 @@ void Table::commitMemory() {
 	for (const KeyRowContainer& keyRow : transaction->getAffected()) {
 		keyRow->rowInfo->setStatus(core::RowInfo::Status::Commit)l
 	}
-
-	transaction->committed();
 	#endif
 }
 

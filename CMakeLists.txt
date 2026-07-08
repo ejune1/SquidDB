@@ -25,6 +25,10 @@ set(CORE_SRCS
     src/storage/Column.cxx
     src/storage/Schema.cxx
     src/engine/Table.cxx
+    src/core/KeyRowInfo.cxx
+    src/core/Transaction.cxx
+    src/core/ThreadContext.cxx
+    src/core/ThreadContextManager.cxx
 )
 
 set(MAIN_SRC 
