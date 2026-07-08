@@ -183,31 +183,43 @@ TableIterator* Table::rangeScan(const std::string& /* indexName */, const void* 
 void Table::beginTransaction() {
 	// TODO
 	#if 0
-	ThreadContext threadContext* = ThreadContextManager::getInstance().getThreadContext();
-	threadContext->beginTransaction();
+	ThreadContextManager& threadContextManager = ThreadContextManager::getInstance();
+	ThreadContext threadContext* = threadContextManager.getThreadContext();
+
+	std::size_t transactionId = 0;
+	threadContext->beginTransaction(transactionId);
+	threadContextManager.addTransactionActive(transactionId);
 	#endif
 }
 
 void Table::commit() {
 	// TODO
 	#if 0
-	ThreadContext threadContext* = ThreadContextManager::getInstance().getThreadContext();
+	ThreadContextManager& threadContextManager = ThreadContextManager::getInstance();
+	ThreadContext threadContext* = threadContextManager.getThreadContext();
 	Transaction* transaction = threadContext->getTransaction();
+	std::size_t transactionId = transaction->getTransactionId();
 
 	commitLogValue();
 	commitMemory();
 
-	transaction->committed();
+	threadContext->committed();
+	threadContextManager.removeTransactionActive(transactionId);
 	#endif
 }
 
 void Table::rollback() {
 	// TODO
 	#if 0
-	ThreadContext threadContext* = ThreadContextManager::getInstance().getThreadContext();
+	ThreadContextManager& threadContextManager = ThreadContextManager::getInstance();
+	ThreadContext threadContext* = threadContextManager.getThreadContext();
 	Transaction* transaction = threadContext->getTransaction();
+	std::size_t transactionId = transaction->getTransactionId();
 
 	abortTransaction();
+	
+	threadContext->aborted();
+	threadContextManager.removeTransactionActive(transactionId);
 	#endif
 }
 

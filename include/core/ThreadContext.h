@@ -3,6 +3,8 @@
 
 #include "core/Transaction.h"
 
+#include <cstdint>
+
 namespace squiddb { namespace core {
 
 class ThreadContext {
@@ -11,8 +13,10 @@ class ThreadContext {
 		~ThreadContext();
 
 		Transaction* getTransaction() const;
-		void beginTransaction();
+
+		void beginTransaction(const std::size_t transactionId);
 		void committed();
+		void aborted();
 	
 	private:
 		Transaction* m_transaction;

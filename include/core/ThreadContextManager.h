@@ -2,12 +2,14 @@
 #define THREADCONTEXTMANAGER_H
 
 #include "core/ThreadContext.h"
+#include "utils/Logger.h"
 
 #include <cstdint>
 #include <mutex>
 #include <thread>
 #include <shared_mutex>
 #include <unordered_map>
+#include <unordered_set>
 
 namespace squiddb { namespace core {
 
@@ -19,7 +21,9 @@ class ThreadContextManager {
 
 		ThreadContext* getThreadContext();
 
-		bool transactionInProgress(const std::size_t transactionId) const ;
+		void addTransactionActive(const std::size_t transactionId);
+		void removeTransactionActive(const std::size_t transactionId);
+		bool transactionActive(const std::size_t transactionId) const;
 
 		// singleton
 		ThreadContextManager(const ThreadContextManager&) = delete;
@@ -28,7 +32,7 @@ class ThreadContextManager {
 		ThreadContextManager& operator=(ThreadContextManager&&) = delete;
 
 	private:
-		ThreadContextManager();
+		ThreadContextManager(utils::Logger& logger);
 
 		struct ThreadCleanup {
 			ThreadContextManager* m_managerInstance;
@@ -38,13 +42,18 @@ class ThreadContextManager {
 		       		m_managerInstance(managerInstance), m_threadId(threadId) { }
 			
 			~ThreadCleanup() {
-				std::unique_lock<std::shared_mutex> writeLock(m_managerInstance->m_mutex);
+				std::unique_lock<std::shared_mutex> writeLock(m_managerInstance->m_contextMutex);
 				m_managerInstance->m_context.erase(m_threadId);
 			}
 		};
 
-		mutable std::shared_mutex m_mutex;
+		utils::Logger& m_logger;
+
+		mutable std::shared_mutex m_contextMutex;
 		std::unordered_map<std::thread::id, ThreadContext*> m_context;
+
+		mutable std::shared_mutex m_transactionIdMutex;
+		std::unordered_set<std::size_t> m_transactionId;
 };
 
 }} // namespace

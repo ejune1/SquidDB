@@ -1,19 +1,22 @@
 #include "core/ThreadContextManager.h"
 
 #include "core/ThreadContext.h"
+#include "utils/Logger.h"
 
 #include <cstdint>
 #include <mutex>
 #include <thread>
 #include <shared_mutex>
+#include <string>
 #include <unordered_map>
+#include <unordered_set>
 
 namespace squiddb { namespace core {
 
-ThreadContextManager::ThreadContextManager() { }
+ThreadContextManager::ThreadContextManager(utils::Logger& logger) : m_logger(logger) { }
 
 ThreadContextManager& ThreadContextManager::getInstance() {
-	static ThreadContextManager instance;
+	static ThreadContextManager instance(utils::Logger::getInstance());
 	
 	return instance;
 }
@@ -28,7 +31,7 @@ ThreadContext* ThreadContextManager::getThreadContext() {
 
 	if (initialized == false) {
 		{
-			std::unique_lock<std::shared_mutex> writeLock(m_mutex);
+			std::unique_lock<std::shared_mutex> writeLock(m_contextMutex);
 			m_context[threadId] = &threadContext;
 		}
 		initialized = true;
@@ -37,22 +40,39 @@ ThreadContext* ThreadContextManager::getThreadContext() {
 	return &threadContext;
 }
 
-bool ThreadContextManager::transactionInProgress(const std::size_t transactionId) const {
-	// TODO keep another map with key transactionId so we can look this up fast
+void ThreadContextManager::addTransactionActive(const std::size_t transactionId) {
+	std::pair<std::unordered_set<std::size_t>::iterator, bool> result;
+
+	{
+		std::unique_lock<std::shared_mutex> writeLock(m_transactionIdMutex);
+		result = m_transactionId.insert(transactionId);
+	}
+
+	if (result.second == false) {
+		std::string logMessage = "ThreadContextManager::addTransactionActive transaction already active";
+		m_logger.log(utils::Logger::LogLevel::Warn, logMessage);
+	}
+}
+
+void ThreadContextManager::removeTransactionActive(const std::size_t transactionId) {
+	std::size_t found = 0;
+
+	{
+		std::unique_lock<std::shared_mutex> writeLock(m_transactionIdMutex);
+		found = m_transactionId.erase(transactionId);
+	}
+
+	if (found == 0) {
+		std::string logMessage = "ThreadContextManager::removeTransactionActive transaction not active";
+		m_logger.log(utils::Logger::LogLevel::Warn, logMessage);
+	}
+}
+
+bool ThreadContextManager::transactionActive(const std::size_t transactionId) const {
 	bool found = false;
 	{
-		std::shared_lock<std::shared_mutex> readLock(m_mutex);
-
-		for (std::pair<const std::thread::id, ThreadContext*> pair : m_context) {
-			Transaction* transaction = pair.second->getTransaction();
-
-			if (transaction != nullptr) {
-				if (transaction->getTransactionId() == transactionId) {
-					found = true;
-					break;
-				}
-			}
-		}
+		std::shared_lock<std::shared_mutex> readLock(m_transactionIdMutex);
+		found = (m_transactionId.find(transactionId) != m_transactionId.end());
 	}
 
 	return found;

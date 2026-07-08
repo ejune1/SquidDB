@@ -21,13 +21,10 @@ Transaction* ThreadContext::getTransaction() const {
 	return m_transaction;
 }
 
-void ThreadContext::beginTransaction() {
+void ThreadContext::beginTransaction(const std::size_t transactionId) {
 	if (m_transaction != nullptr) {
 		throw std::runtime_error("ThreadContext::beginTransaction transaction is not null");
 	}
-
-	// TODO something needs to manage these Ids
-	std::size_t transactionId = 0;
 
 	m_transaction = new Transaction(transactionId);
 }
@@ -35,6 +32,15 @@ void ThreadContext::beginTransaction() {
 void ThreadContext::committed() {
 	if (m_transaction == nullptr) {
 		throw std::runtime_error("ThreadContext::committed transaction is null");
+	}
+
+	delete m_transaction;
+	m_transaction = nullptr;
+}
+
+void ThreadContext::aborted() {
+	if (m_transaction == nullptr) {
+		throw std::runtime_error("ThreadContext::aborted transaction is null");
 	}
 
 	delete m_transaction;
