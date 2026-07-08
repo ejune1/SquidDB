@@ -22,6 +22,7 @@ class Table {
 		// startup is currently recover only
 		void startup();
 		void recover();
+		void shutdown();
 
 		void addColumn(const std::string name, const std::uint16_t size, const std::uint8_t columnType);
 		void addIndex(const std::string name, const std::uint16_t size, const std::uint8_t columnType, const bool primary);

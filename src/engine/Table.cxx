@@ -66,6 +66,11 @@ void Table::recover() {
 	// TODO
 }
 
+void Table::shutdown() {
+	m_logger.log(utils::Logger::LogLevel::Info, "Table::shutdown shutting down table " + m_name);
+	// TODO
+}
+
 void Table::addColumn(const std::string name, const std::uint16_t size, const std::uint8_t columnType) {
 	if (m_schemaFinalized == true) {
 		throw std::runtime_error("Table::addColumn schema is finalized");
@@ -175,7 +180,10 @@ void Table::createIndexes() {
 					std::string logMessage = "Table::createIndexes creating int32 primary index for " + m_name;
 					m_logger.log(utils::Logger::LogLevel::Info, logMessage);
 
-					m_primary = new core::SkipList<std::int32_t>(m_logger, true /* primaryIndex */, m_configuration.getMaxNodeHeight());
+					core::SkipList<std::int32_t>* skipList= new core::SkipList<std::int32_t>(m_logger, true /* primaryIndex */, 
+						m_configuration.getMaxNodeHeight());
+					skipList->initialize();
+					m_primary = skipList;
 					break;
 				}
 

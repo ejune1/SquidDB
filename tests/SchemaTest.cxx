@@ -2,22 +2,12 @@
 
 #include "storage/Column.h"
 #include "storage/Schema.h"
+#include "utils/FileCleanup.h"
 #include "utils/Logger.h"
 
 #include <filesystem>
 
 using namespace squiddb;
-
-struct FileCleanup {
-	std::filesystem::path filePath;
-	FileCleanup(const std::string& path) : filePath(path) { }
-
-	~FileCleanup() {
-		if (std::filesystem::exists(filePath)) {
-			std::filesystem::remove(filePath);
-		}
-	}
-};
 
 TEST_CASE("Schema simple create single int primary and check Column", "[schema]") {
 	utils::Logger& logger = utils::Logger::getInstance();
@@ -77,7 +67,7 @@ TEST_CASE("Schema simple create multiple Columns and check Columns", "[schema]")
 
 TEST_CASE("Schema create single int primary and write/read check Column", "[schema]") {
 	std::string filePath = "./table.ss";
-	FileCleanup fileCleanup(filePath);
+	utils::FileCleanup fileCleanup(filePath);
 
 	utils::Logger& logger = utils::Logger::getInstance();
         logger.setLogLevel(utils::Logger::LogLevel::Info);
@@ -105,7 +95,7 @@ TEST_CASE("Schema create single int primary and write/read check Column", "[sche
 
 TEST_CASE("Schema create multiple Columns and write/read check Columns", "[schema]") {
 	std::string filePath = "./table.ss";
-	FileCleanup fileCleanup(filePath);
+	utils::FileCleanup fileCleanup(filePath);
 
 	utils::Logger& logger = utils::Logger::getInstance();
         logger.setLogLevel(utils::Logger::LogLevel::Info);
