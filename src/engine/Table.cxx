@@ -137,6 +137,8 @@ bool Table::updateRow(const void* key, void* row) {
 
 	std::uint16_t rowSize = m_schema.getTotalSize();
 
+	// TODO this needs to check if the key is changing
+
 	bool result = m_primary->updateRow(key, row, rowSize);
 
 	// TODO secondary
