@@ -115,7 +115,25 @@ bool Table::insertRow(void* row) {
 	std::byte* rowBytes = static_cast<std::byte*>(row);
 	void* key = static_cast<void*>(rowBytes + primaryOffset);
 
+	#if 0
+	ThreadContext threadContext* = ThreadContextManager::getInstance().getThreadContext();
+	Transaction* transaction = threadContext->getTransaction();
+
+	bool implicitTransaction = (transaction == nullptr);
+	if (implicitTransaction == true) {
+		beginTransaction();
+		transaction = threadContext->getTransaction();
+	}
+
+	bool result = m_primary->insertRow(key, row, rowSize, transaction);
+
+	if (implicitTransaction == true) {
+		commit();
+	}
+
+	#else
 	bool result = m_primary->insertRow(key, row, rowSize);
+	#endif
 	
 	// TODO secondary
 	
@@ -162,6 +180,35 @@ TableIterator* Table::rangeScan(const std::string& /* indexName */, const void* 
 	return m_primary->rangeScan(startKey, endKey);
 }
 
+void Table::beginTransaction() {
+	// TODO
+	#if 0
+	ThreadContext threadContext* = ThreadContextManager::getInstance().getThreadContext();
+	threadContext->beginTransaction();
+	#endif
+}
+
+void Table::commit() {
+	// TODO
+	#if 0
+	ThreadContext threadContext* = ThreadContextManager::getInstance().getThreadContext();
+	Transaction* transaction = threadContext->getTransaction();
+
+	commitLogValue();
+	commitMemory();
+	#endif
+}
+
+void Table::rollback() {
+	// TODO
+	#if 0
+	ThreadContext threadContext* = ThreadContextManager::getInstance().getThreadContext();
+	Transaction* transaction = threadContext->getTransaction();
+
+	abortTransaction();
+	#endif
+}
+
 void Table::createIndexes() {
 	if (m_schemaFinalized == false) {
 		throw std::runtime_error("Table::createIndexes schema not finalized");
@@ -206,6 +253,66 @@ void Table::createIndexes() {
 	if (m_primary == nullptr) {
 		throw std::runtime_error("Table::createIndexes did not find primary index for " + m_name);
 	}
+}
+
+void Table::commitLogValue() {
+	// TODO
+	#if 0
+	ThreadContext threadContext* = ThreadContextManager::getInstance().getThreadContext();
+	Transaction* transaction = threadContext->getTransaction();
+	storage::FileManager* fileManager = storage::FileManager::getInstance();
+
+	fileManager.lockLsFiles();
+	fileManager.lockVsFiles();
+
+	storage::FileStream* lsFile = fileManager.getCurrentLsFile();
+	storage::FileStream* vsFile = fileManager.getCurrentVsFile();
+	
+	lsFile->lock();
+	vsFile->lock();
+
+	std::uint8_t vsIndex = vsFile->getIndex();
+	std::size_t vsPosition = vsFile->getPosition();
+
+	// need something to hold the Key and Row in transaction that i can walk here
+	for (const KeyRowContainer& keyRow : transaction->getAffected()) {
+		Protocol_v1_0::writeLogValue(keyRow, lsFile, vsFile);
+
+		keyRow->rowInfo->setFileIndex(vsIndex);
+		keyRow->rowInfo->setFilePosition(vsPosition);
+
+		vsPosition = vsFile->getPosition();
+	}
+
+	vsFile->unlock();
+	lsFile->unlock();
+
+	fileManager.unlockVsFiles();
+	fileManager.unlockLsFiles();
+	#endif
+}
+
+void Table::commitMemory() {
+	// TODO
+	#if 0
+	ThreadContext threadContext* = ThreadContextManager::getInstance().getThreadContext();
+	Transaction* transaction = threadContext->getTransaction();
+
+	for (const KeyRowContainer& keyRow : transaction->getAffected()) {
+		keyRow->rowInfo->setStatus(core::RowInfo::Status::Commit)l
+	}
+
+	transaction->committed();
+	#endif
+}
+
+void Table::abortTransaction() {
+	// TODO
+	#if 0
+	for (const KeyRowContainer& keyRow : transaction->getAffected()) {
+		keyRow->rowInfo->setStatus(core::RowInfo::Status::Abort)l
+	}
+	#endif
 }
 
 }} // namespace

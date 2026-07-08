@@ -31,9 +31,7 @@ class Table {
 
 		// force read keys from row
 		bool insertRow(void* row);
-
 		bool deleteRow(const void* key);
-
 		bool updateRow(const void* key, void* row);
 
 		// uses primary
@@ -41,8 +39,16 @@ class Table {
 		TableIterator* scan(const std::string& indexName) const;
 		TableIterator* rangeScan(const std::string& indexName, const void* startKey, const void* endKey) const;
 
+		void beginTransaction();
+		void commit();
+		void rollback();
+
 	private:
 		void createIndexes();
+
+		void commitLogValue();
+		void commitMemory();
+		void abortTransaction();
 
 		const utils::Configuration& m_configuration;
 		utils::Logger& m_logger;
