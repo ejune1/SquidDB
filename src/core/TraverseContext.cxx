@@ -72,6 +72,6 @@ void TraverseContext<K>::setRank(const size_t rank) {
 }
 
 // explicit instantiation - we know what kinds of keys we will get
-template class TraverseContext<int>;
+template class TraverseContext<std::int32_t>;
 
 }} // namespace

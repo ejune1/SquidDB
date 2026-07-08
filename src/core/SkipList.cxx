@@ -604,6 +604,6 @@ bool SkipList<K>::validate() const {
 }
 
 // explicit instantiation - we know what kinds of keys we will get
-template class SkipList<int>;
+template class SkipList<std::int32_t>;
 
 }} // namespace

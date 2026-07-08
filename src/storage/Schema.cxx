@@ -15,7 +15,11 @@
 
 namespace squiddb { namespace storage {
 
-Schema::Schema(utils::Logger& logger) : m_logger(logger) { }
+Schema::Schema(utils::Logger& logger) : m_logger(logger) {
+	m_totalSize = 0;
+	m_primaryOffset = 0;
+	m_primarySize = 0;
+}
 
 void Schema::read(const std::string filePath) {
 	std::ifstream inputFile(filePath);
@@ -77,13 +81,14 @@ void Schema::write(const std::string filePath) {
 }
 
 void Schema::addColumn(const Column column) {
-	size_t offset = 0;
-	
-	for (const Column& col : m_column) {
-		offset += col.getSize();
+	if (column.getKeyType() == Column::KeyType::Primary) {
+		m_primaryOffset = m_totalSize;
+		m_primarySize = column.getSize();
 	}
 
-	m_offset[column.getName()] = offset;
+	m_offset[column.getName()] = m_totalSize;
+	m_totalSize += column.getSize();
+
 	m_column.push_back(column);
 }
 
@@ -107,6 +112,22 @@ std::int64_t Schema::readInt64(const std::string columnName, const std::byte* ro
 	memcpy(&value, row + offset, sizeof(std::int64_t));
 
 	return value;
+}
+
+std::uint16_t Schema::getOffset(const std::string& columnName) const {
+	return m_offset.at(columnName);
+}
+
+std::uint16_t Schema::getTotalSize() const {
+	return m_totalSize;
+}
+
+std::uint16_t Schema::getPrimaryOffset() const {
+	return m_primaryOffset;
+}
+
+std::uint16_t Schema::getPrimarySize() const {
+	return m_primarySize;
 }
 
 }} // namespace

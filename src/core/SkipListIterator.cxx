@@ -2,6 +2,7 @@
 
 #include "core/SkipListNode.h"
 
+#include <cstdint>
 #include <iterator>
 #include <optional>
 
@@ -85,6 +86,6 @@ const void* SkipListIterator<K>::getData() const {
 }
 
 // explicit instantiation - we know what kinds of keys we will get
-template class SkipListIterator<int>;
+template class SkipListIterator<std::int32_t>;
 
 }} // namespace

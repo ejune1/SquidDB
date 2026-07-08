@@ -4,6 +4,7 @@
 #include "engine/Index.h"
 #include "engine/TableIterator.h"
 #include "storage/Schema.h"
+#include "utils/Configuration.h"
 #include "utils/Logger.h"
 
 #include <cstdint>
@@ -13,7 +14,7 @@ namespace squiddb { namespace engine {
 
 class Table {
 	public:
-		Table(utils::Logger& logger, const std::string path, const std::string name);
+		Table(const utils::Configuration& configuration, utils::Logger& logger, const std::string path, const std::string name);
 		~Table();
 
 		// read schema from disk if it exists, and startup or recover
@@ -36,10 +37,13 @@ class Table {
 
 		// uses primary
 		TableIterator* scan() const;
-		TableIterator* scan(const std::string index) const;
-		TableIterator* rangeScan(const std::string index, const void* startKey, const void* endKey) const;
+		TableIterator* scan(const std::string& indexName) const;
+		TableIterator* rangeScan(const std::string& indexName, const void* startKey, const void* endKey) const;
 
 	private:
+		void createIndexes();
+
+		const utils::Configuration& m_configuration;
 		utils::Logger& m_logger;
 
 		const std::string m_path;

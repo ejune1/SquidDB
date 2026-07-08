@@ -1,6 +1,7 @@
 #ifndef COLUMN_H
 #define COLUMN_H
 
+#include <cstdint>
 #include <string>
 
 namespace squiddb { namespace storage {
@@ -22,10 +23,10 @@ class Column {
 			Unknown = 3
 		};
 
-		Column(const std::string name, const size_t size, const ColumnType columnType, KeyType keyType);
+		Column(const std::string name, const std::uint16_t size, const ColumnType columnType, KeyType keyType);
 
 		std::string getName() const;
-		size_t getSize() const;
+		std::uint16_t getSize() const;
 		ColumnType getColumnType() const;
 		KeyType getKeyType() const;
 
@@ -37,7 +38,7 @@ class Column {
 
 	private:
 		std::string m_name;
-		size_t m_size;
+		std::uint16_t m_size;
 		ColumnType m_type;
 		KeyType m_keyType;
 };

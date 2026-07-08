@@ -85,6 +85,6 @@ std::uint8_t SkipListNode<K>::getHeight() const {
 }
 
 // explicit instantiation - we know what kinds of keys we will get
-template class SkipListNode<int>;
+template class SkipListNode<std::int32_t>;
 
 }} // namespace

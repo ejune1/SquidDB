@@ -2,11 +2,12 @@
 
 #include "utils/StringUtils.h"
 
+#include <cstdint>
 #include <string>
 
 namespace squiddb { namespace storage {
 
-Column::Column(const std::string name, const size_t size, const Column::ColumnType columnType, Column::KeyType keyType) {
+Column::Column(const std::string name, const std::uint16_t size, const Column::ColumnType columnType, Column::KeyType keyType) {
 	m_name = name;
 	m_size = size;
 	m_type = columnType;
@@ -17,7 +18,7 @@ std::string Column::getName() const {
 	return m_name;
 }
 
-size_t Column::getSize() const {
+std::uint16_t Column::getSize() const {
 	return m_size;
 }
 
