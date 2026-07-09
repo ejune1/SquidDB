@@ -29,6 +29,7 @@ set(CORE_SRCS
     src/core/Transaction.cxx
     src/core/ThreadContext.cxx
     src/core/ThreadContextManager.cxx
+    src/storage/StreamFile.cxx
 )
 
 set(MAIN_SRC 
