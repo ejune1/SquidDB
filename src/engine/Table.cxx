@@ -187,7 +187,9 @@ void Table::beginTransaction() {
 	ThreadContext threadContext* = threadContextManager.getThreadContext();
 
 	std::size_t transactionId = 0;
-	threadContext->beginTransaction(transactionId);
+	std::size_t viewpoint = the min active transaction id - 1;
+	core::IsolationLevel isolationLevel = core::IsolationLevel::RepeatableRead;
+	threadContext->beginTransaction(transactionId, viewpoint, isolationLevel);
 	threadContextManager.addTransactionActive(transactionId);
 	#endif
 }

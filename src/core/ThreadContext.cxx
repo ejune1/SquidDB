@@ -1,5 +1,6 @@
 #include "core/ThreadContext.h"
 
+#include "core/IsolationLevel.h"
 #include "core/Transaction.h"
 
 #include <cstdint>
@@ -21,12 +22,12 @@ Transaction* ThreadContext::getTransaction() const {
 	return m_transaction;
 }
 
-void ThreadContext::beginTransaction(const std::size_t transactionId) {
+void ThreadContext::beginTransaction(const std::size_t transactionId, const std::size_t viewpoint, const IsolationLevel isolationLevel) {
 	if (m_transaction != nullptr) {
 		throw std::runtime_error("ThreadContext::beginTransaction transaction is not null");
 	}
 
-	m_transaction = new Transaction(transactionId);
+	m_transaction = new Transaction(transactionId, viewpoint, isolationLevel);
 }
 
 void ThreadContext::committed() {

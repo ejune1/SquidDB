@@ -1,6 +1,7 @@
 #ifndef THREADCONTEXT_H
 #define THREADCONTEXT_H
 
+#include "core/IsolationLevel.h"
 #include "core/Transaction.h"
 
 #include <cstdint>
@@ -14,7 +15,7 @@ class ThreadContext {
 
 		Transaction* getTransaction() const;
 
-		void beginTransaction(const std::size_t transactionId);
+		void beginTransaction(const std::size_t transactionId, const std::size_t viewpoint, const IsolationLevel isolationLevel);
 		void committed();
 		void aborted();
 	

@@ -9,8 +9,8 @@ namespace squiddb { namespace core {
 class RowInfo {
 	public:
 		enum class Status {
-			None = 0,
-			Committed = 1,
+			None        = 0,
+			Committed   = 1,
 			Uncommitted = 2
 		};
 

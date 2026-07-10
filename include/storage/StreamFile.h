@@ -40,8 +40,8 @@ class StreamFile {
 
 	private:
 		enum class Operation {
-			None = 0,
-			Read = 1,
+			None  = 0,
+			Read  = 1,
 			Write = 2
 		};
 

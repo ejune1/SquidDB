@@ -9,18 +9,18 @@ namespace squiddb { namespace storage {
 class Column {
 	public:
 		enum class ColumnType {
-			Int32 = 0,
-			Int64 = 1,
-			Float = 2,
-			String = 3,
+			Int32   = 0,
+			Int64   = 1,
+			Float   = 2,
+			String  = 3,
 			Unknown = 4
 		};
 
 		enum class KeyType {
-			None = 0,
-			Primary = 1,
+			None      = 0,
+			Primary   = 1,
 			Secondary = 2,
-			Unknown = 3
+			Unknown   = 3
 		};
 
 		Column(const std::string name, const std::uint16_t size, const ColumnType columnType, KeyType keyType);

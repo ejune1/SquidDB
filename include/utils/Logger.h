@@ -18,7 +18,7 @@ class Logger {
 		enum class LogMode {
 			Terminal = 0,
 			File     = 1,
-			Unknown
+			Unknown  = 2
 		};
 
 		enum class LogLevel {
