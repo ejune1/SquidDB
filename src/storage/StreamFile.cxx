@@ -3,9 +3,11 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
+#include <filesystem>
 #include <mutex>
 #include <stdexcept>
 #include <string>
+#include <unistd.h>
 
 namespace squiddb { namespace storage {
 
@@ -37,6 +39,8 @@ void StreamFile::open() {
 		throw std::runtime_error("StreamFile::open could not open file " + m_filePath);
 	}
 
+	m_fileSize = std::filesystem::file_size(m_filePath);
+
 	m_lastOperation = Operation::None;
 }
 
@@ -56,13 +60,14 @@ void StreamFile::read(std::byte* bytes, const std::size_t length) {
 		throw std::runtime_error("StreamFile::read file is nullptr " + m_filePath);
 	}
 
+	// would never want to go from write to read (use pread for point reads)
 	if (m_lastOperation == Operation::Write) {
-		std::fseek(m_file, 0 /* offset */, SEEK_CUR);
+		throw std::runtime_error("StreamFile::read last operation was write " + m_filePath);
 	}
 
 	std::size_t bytesRead = std::fread(reinterpret_cast<void*>(bytes), 1, length, m_file);
 
-	if (bytesRead < length) {
+	if (bytesRead != length) {
 		throw std::runtime_error("StreamFile::read read " + std::to_string(bytesRead) + " bytes");
 	}
 
@@ -74,21 +79,74 @@ void StreamFile::write(const std::byte* bytes, const std::size_t length) {
 		throw std::runtime_error("StreamFile::write file is nullptr " + m_filePath);
 	}
 
+	// can go from read to write on the last file
 	if (m_lastOperation == Operation::Read) {
 		std::fseek(m_file, 0, SEEK_CUR);
 	}
 
 	std::size_t bytesWritten = std::fwrite(reinterpret_cast<const void*>(bytes), 1, length, m_file);
 
-	if (bytesWritten < length) {
+	if (bytesWritten != length) {
 		throw std::runtime_error("StreamFile::write wrote " + std::to_string(bytesWritten) + " bytes");
 	}
+
+	m_fileSize += length;
 
 	m_lastOperation = Operation::Write;
 }
 
-std::unique_lock<std::mutex> StreamFile::lock() {
-	return std::unique_lock<std::mutex>(m_mutex);
+void StreamFile::flush() {
+	if (m_file == nullptr) {
+		throw std::runtime_error("StreamFile::flush file is nullptr " + m_filePath);
+	}
+
+	if (m_lastOperation != Operation::Write) {
+		throw std::runtime_error("StreamFile::flush last operation not write " + m_filePath);
+	}
+
+	std::fflush(m_file);
+}
+
+void StreamFile::pointRead(off_t offset, std::byte* bytes, const std::size_t length) {
+	if (m_file == nullptr) {
+		throw std::runtime_error("StreamFile::pointRead file is nullptr " + m_filePath);
+	}
+
+	int fd = fileno(m_file);
+
+	ssize_t bytesRead = pread(fd, reinterpret_cast<char*>(bytes), length, offset);
+
+	if ((bytesRead < 0) || (static_cast<std::size_t>(bytesRead) != length)) {
+		throw std::runtime_error("StreamFile::pointRead read " + std::to_string(bytesRead) + " bytes");
+	}
+}
+
+std::shared_lock<std::shared_mutex> StreamFile::readLock() {
+	return std::shared_lock<std::shared_mutex>(m_mutex);
+}
+
+std::unique_lock<std::shared_mutex> StreamFile::writeLock() {
+	return std::unique_lock<std::shared_mutex>(m_mutex);
+}
+
+std::uint8_t StreamFile::getProtocolVersion() const {
+	return m_protocolVersion;
+}
+
+void StreamFile::setProtocolVersion(const std::uint8_t protocolVersion) {
+	m_protocolVersion = protocolVersion;
+}
+
+std::uintmax_t StreamFile::getFileSize() const {
+	return m_fileSize;
+}
+
+std::size_t StreamFile::getMinActiveTransaction() const {
+	return m_minActiveTransaction;
+}
+
+void StreamFile::setMinActiveTransaction(const std::size_t minActiveTransaction) {
+	m_minActiveTransaction = minActiveTransaction;
 }
 
 }} // namespace
