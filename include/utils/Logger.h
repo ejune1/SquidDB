@@ -47,19 +47,22 @@ class Logger {
 
 		static LogLevel parseLogLevel(const std::string& logLevelString);
 		static LogMode parseLogMode(const std::string& logModeString);
+
+		// singleton
+		Logger(const Logger&) = delete;
+		Logger& operator=(const Logger&) = delete;
+		Logger(Logger&&) = delete;
+		Logger& operator=(Logger&&) = delete;
 	
 	private:
+		Logger();
+		~Logger();
+
 		struct LogItem {
 			std::chrono::time_point<std::chrono::system_clock> time;
 			LogLevel logLevel;
 			std::string message;
 		};
-
-		Logger();
-		~Logger();
-
-		Logger(const Logger&) = delete;
-		Logger& operator=(const Logger&) = delete;
 
 		void run();
 

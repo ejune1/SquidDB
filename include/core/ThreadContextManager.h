@@ -15,8 +15,6 @@ namespace squiddb { namespace core {
 
 class ThreadContextManager {
 	public:
-		~ThreadContextManager() = default;
-
 		static ThreadContextManager& getInstance();
 
 		ThreadContext* getThreadContext();
@@ -27,12 +25,13 @@ class ThreadContextManager {
 
 		// singleton
 		ThreadContextManager(const ThreadContextManager&) = delete;
-		ThreadContextManager& operator=(ThreadContextManager&) = delete;
+		ThreadContextManager& operator=(const ThreadContextManager&) = delete;
 		ThreadContextManager(ThreadContextManager&&) = delete;
 		ThreadContextManager& operator=(ThreadContextManager&&) = delete;
 
 	private:
 		ThreadContextManager(utils::Logger& logger);
+		~ThreadContextManager() = default;
 
 		struct ThreadCleanup {
 			ThreadContextManager* m_managerInstance;
