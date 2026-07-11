@@ -14,7 +14,11 @@ namespace squiddb { namespace storage {
 
 class FileManager {
 	public:
-		FileManager(utils::Logger& logger, const std::string dataPath, const std::uint16_t maxFileSizeMB);
+		FileManager(utils::Logger& logger, 
+			const std::string dataPath, 
+			const std::string tableName, 
+			const std::uint16_t maxFileSizeMB);
+
 		~FileManager() = default;
 
 		void initialize();
@@ -39,14 +43,12 @@ class FileManager {
 		void removeLsVsFiles(std::size_t minTransactionId);
 		// void removeIsFiles();
 
-		FileManager(const FileManager&) = delete;
-		FileManager& operator=(const FileManager&) = delete;
-		FileManager(FileManager&&) = delete;
-		FileManager& operator=(FileManager&&) = delete;
-
 	private:
+		std::vector<std::string> getFilePaths(const std::string extension) const;
+
 		utils::Logger& m_logger;
 		const std::string m_dataPath;
+		const std::string m_tableName;
 		const std::uint16_t m_maxFileSizeMB;
 
 		std::vector<StreamFile> m_lsFiles;
