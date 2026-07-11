@@ -35,22 +35,21 @@ graph LR
 
 ## Recently Completed
 
-- Unit test infrastructure
-- SkipList structure and basic operations (single threaded)
-- Pointer widths (for rank and cardinality estimation)
-- Switch from make to cmake
 - Schema write/read
+- Basic Table class structure
+- Transaction layout
 
 ## Immediate Tasks (in no particular order)
 
-- Basic Table class structure
 - Row writes to disk
 - Log writes to disk (WAL)
 - Error recovery (and startup for now)
 - File rollover (reorg)
 - Remove inline deletes
-- Epoch for safe node deletion in batches
 - Purge for cache pressure
+- Transactions
+- Cross table transactions
+- Epoch for safe node deletion in batches
 - Opaque keys (value and pointer for large keys)
 - Support secondary keys via opaque keys
 - CAS (compare and swap) for node add remove (lockless algorithms)
@@ -58,7 +57,7 @@ graph LR
 - Custom spin lock in node (if needed) for write-write and background threads
 - Arena allocation for nodes / large keys (placement new?)
 - Ref count info for multiple indexes (share infos)
-- Serialize SkipList structure to disk for faster restarts
+- Serialize SkipList structure to disk for faster restarts (checkpointing)
 
 ## 🛠️ Getting Started
 
