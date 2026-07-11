@@ -141,12 +141,33 @@ std::uintmax_t StreamFile::getFileSize() const {
 	return m_fileSize;
 }
 
+long StreamFile::getPosition() {
+	if (m_file == nullptr) {
+		throw std::runtime_error("StreamFile::getPosition file is nullptr " + m_filePath);
+	}
+
+	// this should only happen after a replay (startup)
+	if (m_lastOperation == Operation::Read) {
+		fseek(m_file, 0, SEEK_END);
+	}
+
+	return ftell(m_file);
+}
+
 std::size_t StreamFile::getMinActiveTransaction() const {
 	return m_minActiveTransaction;
 }
 
 void StreamFile::setMinActiveTransaction(const std::size_t minActiveTransaction) {
 	m_minActiveTransaction = minActiveTransaction;
+}
+
+std::uint8_t StreamFile::getSequenceNumber() const {
+	return m_sequenceNumber;
+}
+
+void StreamFile::setSequenceNumber(std::uint8_t sequenceNumber) {
+	m_sequenceNumber = sequenceNumber;
 }
 
 }} // namespace

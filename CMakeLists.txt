@@ -30,6 +30,7 @@ set(CORE_SRCS
     src/core/ThreadContext.cxx
     src/core/ThreadContextManager.cxx
     src/storage/StreamFile.cxx
+    src/storage/FileManager.cxx
 )
 
 set(MAIN_SRC 

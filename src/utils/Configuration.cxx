@@ -70,6 +70,10 @@ void Configuration::read(std::string filename) {
 				m_dataPath = value;
 				m_logger.log(Logger::LogLevel::Info, "Configuration::read got key: DATAPATH value: " + value);
 				break;
+			case ConfigurationKey::MaxFileSizeMB:
+				m_maxFileSizeMB = std::stoi(value);
+				m_logger.log(Logger::LogLevel::Info, "Configuration::read got key: MAXFILESIZEMB value: " + value);
+				break;
 			case ConfigurationKey::Unknown:
 				m_logger.log(Logger::LogLevel::Warn, "Configuration::read got bad config key: " + key);
 				break;
@@ -93,7 +97,7 @@ Logger::LogMode Configuration::getLogMode() const {
 	return m_logMode;
 }
 
-unsigned int Configuration::getMaxMemoryMB() const {
+std::uint32_t Configuration::getMaxMemoryMB() const {
 	return m_maxMemoryMB;
 }
 
@@ -105,6 +109,10 @@ std::string Configuration::getDataPath() const {
 	return m_dataPath;
 }
 
+std::uint16_t Configuration::getMaxFileSizeMB() const {
+	return m_maxFileSizeMB;
+}
+
 std::string Configuration::configurationKeyString(const ConfigurationKey configurationKey) const {
 	switch (configurationKey) {
 		case ConfigurationKey::LogFilePath:   return "LOGFILEPATH";
@@ -113,6 +121,7 @@ std::string Configuration::configurationKeyString(const ConfigurationKey configu
 		case ConfigurationKey::MaxMemoryMB:   return "MAXMEMORYMB";
 		case ConfigurationKey::MaxNodeHeight: return "MAXNODEHEIGHT";
 		case ConfigurationKey::DataPath:      return "DATAPATH";
+		case ConfigurationKey::MaxFileSizeMB: return "MAXFILESIZEMB";
 		case ConfigurationKey::Unknown:       return "UNKNOWN";
 	}
 	return "UNKNOWN";
@@ -143,6 +152,10 @@ Configuration::ConfigurationKey Configuration::parseConfigurationKey(const std::
 
 	if (keyStringUpper == "DATAPATH") {
 		return ConfigurationKey::DataPath;
+	}
+
+	if (keyStringUpper == "MAXFILESIZEMB") {
+		return ConfigurationKey::MaxFileSizeMB;
 	}
 
 	return ConfigurationKey::Unknown;

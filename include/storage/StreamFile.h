@@ -34,9 +34,14 @@ class StreamFile {
 		void setProtocolVersion(const std::uint8_t protocolVersion);
 
 		std::uintmax_t getFileSize() const;
+		// moves file pointer to end of file
+		long getPosition();
 
 		std::size_t getMinActiveTransaction() const;
 		void setMinActiveTransaction(const std::size_t minActiveTransaction);
+
+		std::uint8_t getSequenceNumber() const;
+		void setSequenceNumber(std::uint8_t sequenceNumber);
 
 	private:
 		enum class Operation {
@@ -52,6 +57,7 @@ class StreamFile {
 
 		std::uintmax_t m_fileSize;
 		std::size_t m_minActiveTransaction;
+		std::uint8_t m_sequenceNumber;
 
 		std::shared_mutex m_mutex;
 

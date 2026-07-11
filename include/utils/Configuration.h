@@ -11,13 +11,14 @@ namespace squiddb { namespace utils {
 class Configuration {
 	public:
 		enum class ConfigurationKey {
-			LogFilePath = 0,
-			LogLevel = 1,
-			LogMode = 2,
-			MaxMemoryMB = 3,
+			LogFilePath =   0,
+			LogLevel =      1,
+			LogMode =       2,
+			MaxMemoryMB =   3,
 			MaxNodeHeight = 4,
-			DataPath = 5,
-			Unknown = 6
+			DataPath =      5,
+			MaxFileSizeMB = 6,
+			Unknown =       7
 		};
 
 		Configuration(Logger& logger);
@@ -31,10 +32,11 @@ class Configuration {
 		Logger::LogLevel getLogLevel() const;
 		Logger::LogMode getLogMode() const;
 
-		unsigned int getMaxMemoryMB() const;
+		std::uint32_t getMaxMemoryMB() const;
 		std::uint8_t getMaxNodeHeight() const;
 
 		std::string getDataPath() const;
+		std::uint16_t getMaxFileSizeMB() const;
 
 	private:
 		std::string configurationKeyString(const ConfigurationKey configurationKey) const;
@@ -47,10 +49,11 @@ class Configuration {
 		Logger::LogLevel m_logLevel;
 		Logger::LogMode m_logMode;
 
-		unsigned int m_maxMemoryMB;
+		std::uint32_t m_maxMemoryMB;
 		std::uint8_t m_maxNodeHeight; 
 
 		std::string m_dataPath;
+		std::uint16_t m_maxFileSizeMB;
 };
 
 }} // namespace
