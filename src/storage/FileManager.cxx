@@ -4,7 +4,9 @@
 #include "utils/Logger.h"
 
 #include <algorithm>
+#include <cassert>
 #include <cstdint>
+#include <cstdio>
 #include <cstdlib>
 #include <filesystem>
 #include <iterator>
@@ -66,6 +68,151 @@ void FileManager::initialize() {
 
 	m_logger.log(utils::Logger::LogLevel::Info, "FileManager::initialize ordering vs files..");
 	orderFiles(m_vsFiles);
+}
+
+std::unique_lock<std::mutex> FileManager::lockLsFiles() {
+	return std::unique_lock<std::mutex>(m_mutexLsFiles);
+}
+
+std::unique_lock<std::mutex> FileManager::lockVsFiles() {
+	return std::unique_lock<std::mutex>(m_mutexVsFiles);
+}
+
+StreamFile* FileManager::getCurrentLsFile() const {
+	if (m_lsFiles.size() == 0) {
+		throw std::runtime_error("FileManager::getCurrentLsFile ls files empty " + m_tableName);
+	}
+
+	return m_lsFiles.back();
+}
+
+StreamFile* FileManager::getCurrentVsFile() const {
+	if (m_vsFiles.size() == 0) {
+		throw std::runtime_error("FileManager::getCurrentVsFile vs files empty " + m_tableName);
+	}
+
+	return m_vsFiles.back();
+}
+
+std::vector<StreamFile*> FileManager::getLsFiles() {
+	return m_lsFiles;
+}
+
+std::vector<StreamFile*> FileManager::getVsFiles() {
+	return m_vsFiles;
+}
+
+StreamFile* FileManager::getLsFile(const std::uint8_t sequenceNumber) const {
+	StreamFile* found = nullptr;
+	for (StreamFile* lsFile : m_lsFiles) {
+		if (lsFile->getSequenceNumber() == sequenceNumber) {
+			found = lsFile;
+			break;
+		}
+	}
+
+	if (found == nullptr) {
+		throw std::runtime_error("FileManager::getLsFile did not find sequence number " + 
+			std::to_string(sequenceNumber) + " table " + m_tableName);
+	}
+
+	return found;
+}
+
+StreamFile* FileManager::getVsFile(const std::uint8_t sequenceNumber) const {
+	StreamFile* found = nullptr;
+	for (StreamFile* vsFile : m_vsFiles) {
+		if (vsFile->getSequenceNumber() == sequenceNumber) {
+			found = vsFile;
+			break;
+		}
+	}
+
+	if (found == nullptr) {
+		throw std::runtime_error("FileManager::getVsFile did not find sequence number " + 
+			std::to_string(sequenceNumber) + " table " + m_tableName);
+	}
+
+	return found;
+}
+
+StreamFile* FileManager::addLsFile() {
+	std::uint8_t sequenceNumber = 0;
+
+	if (m_lsFiles.size() > 0) {
+		StreamFile* streamFile = getCurrentLsFile();
+		if (streamFile->getSequenceNumber() != 255) {
+			sequenceNumber = streamFile->getSequenceNumber() + 1;
+		}
+	}
+
+	char buffer[32];
+	std::snprintf(buffer, sizeof(buffer), "%03d", sequenceNumber);
+	std::string filePath = m_dataPath + "/" + m_tableName + "." + buffer + ".ls";
+
+	StreamFile* streamFile = new StreamFile(filePath);
+	m_lsFiles.push_back(streamFile);
+
+	return streamFile;
+}
+
+StreamFile* FileManager::addVsFile() {
+	std::uint8_t sequenceNumber = 0;
+
+	if (m_vsFiles.size() > 0) {
+		StreamFile* streamFile = getCurrentVsFile();
+		if (streamFile->getSequenceNumber() != 255) {
+			sequenceNumber = streamFile->getSequenceNumber() + 1;
+		}
+	}
+
+	char buffer[32];
+	std::snprintf(buffer, sizeof(buffer), "%03d", sequenceNumber);
+	std::string filePath = m_dataPath + "/" + m_tableName + "." + buffer + ".vs";
+
+	StreamFile* streamFile = new StreamFile(filePath);
+	m_vsFiles.push_back(streamFile);
+
+	return streamFile;
+}
+
+void FileManager::removeLsVsFiles(const std::size_t /* minTransactionId */) {
+	// TODO
+}
+
+bool FileManager::validate() {
+	bool valid = true;
+
+	assert(m_lsFiles.size() == m_vsFiles.size());
+	valid = (m_lsFiles.size() == m_vsFiles.size());
+
+	int nextSequenceNumber = -1;
+	for (long unsigned int x = 0; x < m_lsFiles.size(); x++) {
+		std::uint8_t lsSequenceNumber = m_lsFiles[x]->getSequenceNumber();
+		std::uint8_t vsSequenceNumber = m_vsFiles[x]->getSequenceNumber();
+
+		assert(lsSequenceNumber == vsSequenceNumber);
+		valid = (valid == false) ? false : (lsSequenceNumber == vsSequenceNumber);
+
+		if (nextSequenceNumber == -1) {
+			if (lsSequenceNumber == 255) {
+				nextSequenceNumber = 0;
+			} else {
+				nextSequenceNumber = lsSequenceNumber + 1;
+			}
+		} else {
+			assert(lsSequenceNumber == nextSequenceNumber);
+			valid = (valid == false) ? false : (lsSequenceNumber == nextSequenceNumber);
+
+			if (nextSequenceNumber == 255) {
+				nextSequenceNumber = 0;
+			} else {
+				nextSequenceNumber++;
+			}
+		}
+	}
+
+	return valid;
 }
 
 std::vector<std::string> FileManager::getFilePaths(const std::string extension) const {

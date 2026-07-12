@@ -32,16 +32,23 @@ class FileManager {
 		StreamFile* getCurrentVsFile() const;
 		// StreamFile* getCurrentIsFile() const;
 
-		StreamFile* getLsFile(std::uint8_t sequenceNumber) const;
-		StreamFile* getVsFile(std::uint8_t sequenceNumber) const;
+		std::vector<StreamFile*> getLsFiles();
+		std::vector<StreamFile*> getVsFiles();
+		// std::vector<StreamFile*> getIsFiles();
+
+		StreamFile* getLsFile(const std::uint8_t sequenceNumber) const;
+		StreamFile* getVsFile(const std::uint8_t sequenceNumber) const;
 		// StreamFile* getIsFile(std::uint8_t sequenceNumber) const;
 
 		StreamFile* addLsFile();
 		StreamFile* addVsFile();
 		// StreamFile* addIsFile();
 
-		void removeLsVsFiles(std::size_t minTransactionId);
+		void removeLsVsFiles(const std::size_t minTransactionId);
 		// void removeIsFiles();
+
+		// for testing
+		bool validate();
 
 	private:
 		std::vector<std::string> getFilePaths(const std::string extension) const;

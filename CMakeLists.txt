@@ -42,6 +42,7 @@ set(TEST_SRCS
     tests/SkipListTest.cxx
     tests/SchemaTest.cxx
     tests/TableTest.cxx
+    tests/FileManagerTest.cxx
 )
 
 # 3. Production Binary (squid)
