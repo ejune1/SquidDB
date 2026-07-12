@@ -19,7 +19,7 @@ class FileManager {
 			const std::string tableName, 
 			const std::uint16_t maxFileSizeMB);
 
-		~FileManager() = default;
+		~FileManager();
 
 		void initialize();
 
@@ -45,14 +45,16 @@ class FileManager {
 
 	private:
 		std::vector<std::string> getFilePaths(const std::string extension) const;
+		std::uint8_t getSequenceNumber(const std::string filePath) const;
+		void orderFiles(std::vector<StreamFile*>& files);
 
 		utils::Logger& m_logger;
 		const std::string m_dataPath;
 		const std::string m_tableName;
 		const std::uint16_t m_maxFileSizeMB;
 
-		std::vector<StreamFile> m_lsFiles;
-		std::vector<StreamFile> m_vsFiles;
+		std::vector<StreamFile*> m_lsFiles;
+		std::vector<StreamFile*> m_vsFiles;
 		// std::vector<StreamFile> m_isFiles;
 
 		std::mutex m_mutexLsFiles;
