@@ -47,6 +47,7 @@ void FileManager::initialize() {
 		std::uint8_t sequenceNumber = getSequenceNumber(lsFilePath);
 		StreamFile* streamFile = new StreamFile(lsFilePath);
 		streamFile->setSequenceNumber(sequenceNumber);
+		streamFile->open();
 
 		m_logger.log(utils::Logger::LogLevel::Info, "FileManager::initialize discovered ls file " + lsFilePath);
 
@@ -57,6 +58,7 @@ void FileManager::initialize() {
 		std::uint8_t sequenceNumber = getSequenceNumber(vsFilePath);
 		StreamFile* streamFile = new StreamFile(vsFilePath);
 		streamFile->setSequenceNumber(sequenceNumber);
+		streamFile->open();
 
 		m_logger.log(utils::Logger::LogLevel::Info, "FileManager::initialize discovered vs file " + vsFilePath);
 
@@ -151,6 +153,9 @@ StreamFile* FileManager::addLsFile() {
 	std::string filePath = m_dataPath + "/" + m_tableName + "." + buffer + ".ls";
 
 	StreamFile* streamFile = new StreamFile(filePath);
+	streamFile->setSequenceNumber(sequenceNumber);
+	streamFile->open();
+
 	m_lsFiles.push_back(streamFile);
 
 	return streamFile;
@@ -171,6 +176,9 @@ StreamFile* FileManager::addVsFile() {
 	std::string filePath = m_dataPath + "/" + m_tableName + "." + buffer + ".vs";
 
 	StreamFile* streamFile = new StreamFile(filePath);
+	streamFile->setSequenceNumber(sequenceNumber);
+	streamFile->open();
+
 	m_vsFiles.push_back(streamFile);
 
 	return streamFile;

@@ -13,8 +13,10 @@ namespace squiddb { namespace storage {
 
 class StreamFile {
 	public:
-		StreamFile(const std::string& filePath);
+		StreamFile(const std::string filePath);
 		~StreamFile();
+
+		std::string getFilePath() const;
 
 		void open();
 		void close();
@@ -50,7 +52,7 @@ class StreamFile {
 			Write = 2
 		};
 
-		const std::string& m_filePath;
+		const std::string m_filePath;
 		std::FILE* m_file;
 
 		std::uint8_t m_protocolVersion;

@@ -33,6 +33,10 @@ struct DirectoryCleanup {
 
 		filePaths.push_back(filePath);
 	}
+
+	void addFile(const std::string filePath) {
+		filePaths.push_back(filePath);
+	}
 };
 
 }} // namespace

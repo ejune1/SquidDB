@@ -11,7 +11,7 @@
 
 namespace squiddb { namespace storage {
 
-StreamFile::StreamFile(const std::string& filePath) : m_filePath(filePath) {
+StreamFile::StreamFile(const std::string filePath) : m_filePath(filePath) {
 	m_file = nullptr;
 	m_protocolVersion = 0;
 	m_fileSize = 0;
@@ -26,6 +26,10 @@ StreamFile::~StreamFile() {
 	}
 
 	m_lastOperation = Operation::None;
+}
+
+std::string StreamFile::getFilePath() const {
+	return m_filePath;
 }
 
 void StreamFile::open() {
