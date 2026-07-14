@@ -3,6 +3,7 @@
 #include "core/RowInfo.h"
 #include "core/SkipListIterator.h"
 #include "core/SkipListNode.h"
+#include "core/Transaction.h"
 #include "engine/TableIterator.h"
 #include "utils/Configuration.h"
 #include "utils/Logger.h"
@@ -79,7 +80,7 @@ void SkipList<K>::initialize() {
 }
 
 template<typename K>
-bool SkipList<K>::insert(const K key, std::byte* data, const std::uint16_t size, std::uint8_t nodeHeight) {
+bool SkipList<K>::insert(const K key, std::byte* data, const std::uint16_t size, std::uint8_t nodeHeight, Transaction* transaction) {
 	if (m_initialized == false) {
 		throw std::runtime_error("SkipList<K>::insert not initialized");
 	}
@@ -142,12 +143,18 @@ bool SkipList<K>::insert(const K key, std::byte* data, const std::uint16_t size,
 
 	delete traverseContext;
 
+	if (transaction != nullptr) {
+		// TODO opaque keys
+		transaction->addAffectedRow(reinterpret_cast<const std::byte*>(insertNode->getKeyRef()), sizeof(K), rowInfo);
+	}
+
 	m_size.fetch_add(1, std::memory_order_relaxed);
 	return true;
 }
 
 template<typename K>
-bool SkipList<K>::remove(const K key) {
+bool SkipList<K>::remove(const K key, Transaction* /* transaction */) {
+	// TODO transaction needs background delete
 	if (m_initialized == false) {
 		throw std::runtime_error("SkipList<K>::remove not initialized");
 	}
@@ -217,7 +224,7 @@ bool SkipList<K>::remove(const K key) {
 }
 
 template<typename K>
-bool SkipList<K>::update(const K key, std::byte* data, const std::uint16_t size) {
+bool SkipList<K>::update(const K key, std::byte* data, const std::uint16_t size, Transaction* transaction) {
 	if (m_initialized == false) {
 		throw std::runtime_error("SkipList<K>::update not initialized");
 	}
@@ -234,6 +241,11 @@ bool SkipList<K>::update(const K key, std::byte* data, const std::uint16_t size)
 
 		if (dataToDelete != nullptr) {
 			std::free(dataToDelete);
+		}
+
+		if (transaction != nullptr) {
+			// TODO opaque keys
+			transaction->addAffectedRow(reinterpret_cast<const std::byte*>(foundNode->getKeyRef()), sizeof(K), foundNode->getRowInfo());
 		}
 
 		return true;
@@ -428,26 +440,26 @@ size_t SkipList<K>::memoryUsageMB() const {
 }
 
 template<typename K>
-bool SkipList<K>::insertRow(const void* key, void* row, const std::uint16_t size) {
+bool SkipList<K>::insertRow(const void* key, void* row, const std::uint16_t size, Transaction* transaction) {
 	const K insertKey = *static_cast<const K*>(key);
 	std::byte* insertData = static_cast<std::byte*>(row);
 
-	return insert(insertKey, insertData, size);
+	return insert(insertKey, insertData, size, 0 /* nodeHeight */, transaction);
 }
 
 template<typename K>
-bool SkipList<K>::deleteRow(const void* key) {
+bool SkipList<K>::deleteRow(const void* key, Transaction* transaction) {
 	const K deleteKey = *static_cast<const K*>(key);
 
-	return remove(deleteKey);
+	return remove(deleteKey, transaction);
 }
 
 template<typename K>
-bool SkipList<K>::updateRow(const void* key, void* row, const std::uint16_t size) {
+bool SkipList<K>::updateRow(const void* key, void* row, const std::uint16_t size, Transaction* transaction) {
 	const K updateKey = *static_cast<const K*>(key);
 	std::byte* updateData = static_cast<std::byte*>(row);
 
-	return update(updateKey, updateData, size);
+	return update(updateKey, updateData, size, transaction);
 }
 
 template<typename K>

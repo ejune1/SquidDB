@@ -15,13 +15,17 @@ namespace squiddb { namespace core {
 
 class ThreadContextManager {
 	public:
-		static ThreadContextManager& getInstance();
+		static ThreadContextManager* getInstance();
 
 		ThreadContext* getThreadContext();
 
-		void addTransactionActive(const std::size_t transactionId);
+		// adds to active transactions
+		std::size_t getNextTransactionId();
+
 		void removeTransactionActive(const std::size_t transactionId);
 		bool transactionActive(const std::size_t transactionId) const;
+
+		std::size_t getMinActiveTransactionId() const;
 
 		// singleton
 		ThreadContextManager(const ThreadContextManager&) = delete;
@@ -47,6 +51,8 @@ class ThreadContextManager {
 		};
 
 		utils::Logger& m_logger;
+
+		std::size_t m_currentTransactionId;
 
 		mutable std::shared_mutex m_contextMutex;
 		std::unordered_map<std::thread::id, ThreadContext*> m_context;

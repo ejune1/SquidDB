@@ -3,6 +3,7 @@
 
 #include "core/SkipListIterator.h"
 #include "core/SkipListNode.h"
+#include "core/Transaction.h"
 #include "core/TraverseContext.h"
 #include "engine/Index.h"
 #include "engine/TableIterator.h"
@@ -29,9 +30,15 @@ class SkipList : public engine::Index {
 		// data modification (execution engine)
 		
 		// note size of data limited to 65,535
-		bool insert(const K key, std::byte* data, const std::uint16_t size, std::uint8_t nodeHeight = 0);
-		bool remove(const K key);
-		bool update(const K key, std::byte* data, const std::uint16_t size);
+		bool insert(
+			const K key, std::byte* data, 
+			const std::uint16_t size, 
+			std::uint8_t nodeHeight = 0,
+			Transaction* transaction = nullptr
+			);
+
+		bool remove(const K key, Transaction* transaction = nullptr);
+		bool update(const K key, std::byte* data, const std::uint16_t size, Transaction* transaction = nullptr);
 
 		// point lookup and verification
 		std::byte* find(const K key) const;
@@ -49,9 +56,9 @@ class SkipList : public engine::Index {
 		size_t memoryUsageMB() const;
 
 		// Index methods
-		bool insertRow(const void* key, void* row, const std::uint16_t size) override;
-		bool deleteRow(const void* key) override;
-		bool updateRow(const void* key, void* row, const std::uint16_t size) override;
+		bool insertRow(const void* key, void* row, const std::uint16_t size, Transaction* transaction) override;
+		bool deleteRow(const void* key, Transaction* transaction) override;
+		bool updateRow(const void* key, void* row, const std::uint16_t size, Transaction* transaction) override;
 
 		engine::TableIterator* scan() const;
 		engine::TableIterator* rangeScan(const void* startKey, const void* endKey) const;

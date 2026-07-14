@@ -19,6 +19,8 @@ Schema::Schema(utils::Logger& logger) : m_logger(logger) {
 	m_totalSize = 0;
 	m_primaryOffset = 0;
 	m_primarySize = 0;
+	m_keySizeFixed = true;
+	m_rowSizeFixed = true;
 }
 
 void Schema::read(const std::string filePath) {
@@ -89,6 +91,15 @@ void Schema::addColumn(const Column column) {
 	m_offset[column.getName()] = m_totalSize;
 	m_totalSize += column.getSize();
 
+	// TODO variable sizes
+	if (column.getSize() == 0) {
+		m_rowSizeFixed = false;
+
+		if (column.getKeyType() != Column::KeyType::None) {
+			m_keySizeFixed = false;
+		}
+	}
+
 	m_column.push_back(column);
 }
 
@@ -128,6 +139,14 @@ std::uint16_t Schema::getPrimaryOffset() const {
 
 std::uint16_t Schema::getPrimarySize() const {
 	return m_primarySize;
+}
+
+bool Schema::keySizeFixed() const {
+	return m_keySizeFixed;
+}
+
+bool Schema::rowSizeFixed() const {
+	return m_rowSizeFixed;
 }
 
 }} // namespace

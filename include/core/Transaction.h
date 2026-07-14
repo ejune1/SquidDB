@@ -3,7 +3,9 @@
 
 #include "core/IsolationLevel.h"
 #include "core/KeyRowInfo.h"
+#include "core/RowInfo.h"
 
+#include <cstddef>
 #include <cstdint>
 #include <vector>
 
@@ -12,7 +14,7 @@ namespace squiddb { namespace core {
 class Transaction {
 	public:
 		Transaction(const std::size_t transactionId, const std::size_t viewpoint, const IsolationLevel isolationLevel);
-		~Transaction() = default;
+		~Transaction();
 
 		std::size_t getTransactionId() const;
 		std::size_t getViewpoint() const;
@@ -20,6 +22,8 @@ class Transaction {
 		IsolationLevel getIsolationLevel() const;
 
 		std::vector<KeyRowInfo*> getAffectedRows() const;
+
+		void addAffectedRow(const std::byte* key, const std::uint16_t keySize, RowInfo* rowInfo);
 		void addAffectedRow(KeyRowInfo* keyRowInfo);
 
 	private:

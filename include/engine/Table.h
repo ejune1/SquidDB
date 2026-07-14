@@ -1,8 +1,11 @@
 #ifndef TABLE_H
 #define TABLE_H
 
+#include "core/ThreadContext.h"
+#include "core/ThreadContextManager.h"
 #include "engine/Index.h"
 #include "engine/TableIterator.h"
+#include "storage/FileManager.h"
 #include "storage/Schema.h"
 #include "utils/Configuration.h"
 #include "utils/Logger.h"
@@ -14,10 +17,14 @@ namespace squiddb { namespace engine {
 
 class Table {
 	public:
-		Table(const utils::Configuration& configuration, utils::Logger& logger, const std::string path, const std::string name);
+		Table(const utils::Configuration& configuration, 
+			utils::Logger& logger, 
+			const std::string dataPath, 
+			const std::string name);
+
 		~Table();
 
-		// read schema from disk if it exists, and startup or recover
+		// read schema from disk if it exists, initialize files, and startup or recover
 		void initialize();
 		// startup is currently recover only
 		void startup();
@@ -39,25 +46,27 @@ class Table {
 		TableIterator* scan(const std::string& indexName) const;
 		TableIterator* rangeScan(const std::string& indexName, const void* startKey, const void* endKey) const;
 
-		void beginTransaction();
-		void commit();
-		void rollback();
+		void beginTransaction(core::ThreadContextManager* threadContextManager);
+		void commit(core::ThreadContextManager* threadContextManager);
+		void rollback(core::ThreadContextManager* threadContextManager);
 
 	private:
 		void createIndexes();
 
 		void commitLogValue();
-		void commitMemory();
-		void abortTransaction();
+		void commitMemory(core::Transaction* transaction);
+		void abortTransaction(core::Transaction* transaction);
 
 		const utils::Configuration& m_configuration;
 		utils::Logger& m_logger;
 
-		const std::string m_path;
+		const std::string m_dataPath;
 		const std::string m_name;
 		storage::Schema m_schema;
 		bool m_schemaFinalized;
 		
+		storage::FileManager m_fileManager;
+
 		Index* m_primary;
 		Index** m_secondary;
 		std::uint8_t m_secondarySize;

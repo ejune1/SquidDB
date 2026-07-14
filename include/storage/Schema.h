@@ -34,6 +34,9 @@ class Schema {
 		std::uint16_t getPrimaryOffset() const;
 		std::uint16_t getPrimarySize() const;
 
+		bool keySizeFixed() const;
+		bool rowSizeFixed() const;
+
 	private:
 		utils::Logger& m_logger;
 
@@ -44,6 +47,9 @@ class Schema {
 
 		std::uint16_t m_primaryOffset;
 		std::uint16_t m_primarySize;
+
+		bool m_keySizeFixed;
+		bool m_rowSizeFixed;
 };
 
 }} // namespace

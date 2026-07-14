@@ -3,7 +3,10 @@
 #include "core/ThreadContext.h"
 #include "utils/Logger.h"
 
+#include <algorithm>
+#include <atomic>
 #include <cstdint>
+#include <limits>
 #include <mutex>
 #include <thread>
 #include <shared_mutex>
@@ -13,12 +16,14 @@
 
 namespace squiddb { namespace core {
 
-ThreadContextManager::ThreadContextManager(utils::Logger& logger) : m_logger(logger) { }
+ThreadContextManager::ThreadContextManager(utils::Logger& logger) : m_logger(logger) {
+	m_currentTransactionId = 0;
+}
 
-ThreadContextManager& ThreadContextManager::getInstance() {
+ThreadContextManager* ThreadContextManager::getInstance() {
 	static ThreadContextManager instance(utils::Logger::getInstance());
 	
-	return instance;
+	return &instance;
 }
 
 ThreadContext* ThreadContextManager::getThreadContext() {
@@ -40,18 +45,24 @@ ThreadContext* ThreadContextManager::getThreadContext() {
 	return &threadContext;
 }
 
-void ThreadContextManager::addTransactionActive(const std::size_t transactionId) {
+std::size_t ThreadContextManager::getNextTransactionId() {
 	std::pair<std::unordered_set<std::size_t>::iterator, bool> result;
+	std::size_t nextTransactionId = 0;
 
 	{
 		std::unique_lock<std::shared_mutex> writeLock(m_transactionIdMutex);
-		result = m_transactionId.insert(transactionId);
+		m_currentTransactionId += 1;
+		nextTransactionId = m_currentTransactionId;
+
+		result = m_transactionId.insert(nextTransactionId);
 	}
 
 	if (result.second == false) {
-		std::string logMessage = "ThreadContextManager::addTransactionActive transaction already active";
+		std::string logMessage = "ThreadContextManager::getNextTransactionId transaction already active";
 		m_logger.log(utils::Logger::LogLevel::Warn, logMessage);
 	}
+
+	return nextTransactionId;
 }
 
 void ThreadContextManager::removeTransactionActive(const std::size_t transactionId) {
@@ -76,6 +87,19 @@ bool ThreadContextManager::transactionActive(const std::size_t transactionId) co
 	}
 
 	return found;
+}
+
+std::size_t ThreadContextManager::getMinActiveTransactionId() const {
+	std::size_t minimum = 0;
+	{
+		std::shared_lock<std::shared_mutex> readLock(m_transactionIdMutex);
+		if (m_transactionId.empty() != true) {
+			std::unordered_set<std::size_t>::const_iterator minIt = std::min_element(m_transactionId.begin(), m_transactionId.end());
+			minimum = *minIt;
+		}
+	}
+
+	return minimum;
 }
 
 }} // namespace

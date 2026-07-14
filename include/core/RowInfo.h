@@ -11,7 +11,8 @@ class RowInfo {
 		enum class Status {
 			None        = 0,
 			Committed   = 1,
-			Uncommitted = 2
+			Aborted     = 2,
+			Uncommitted = 3
 		};
 
 		RowInfo(Status status, std::byte* data, std::uint16_t size);
