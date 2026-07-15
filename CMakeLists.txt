@@ -43,6 +43,7 @@ set(TEST_SRCS
     tests/SchemaTest.cxx
     tests/TableTest.cxx
     tests/FileManagerTest.cxx
+    tests/ThreadContextManagerTest.cxx
 )
 
 # 3. Production Binary (squid)
