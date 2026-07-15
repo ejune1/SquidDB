@@ -89,7 +89,7 @@ class SkipList : public engine::Index {
 
 	private:
 		SkipListNode<K>* findNode(const K key) const;
-		TraverseContext<K>* traversePrevNodes(const K key, bool& duplicateKey) const;
+		TraverseContext<K>* traversePrevNodes(const K key, bool& duplicateKey, Transaction* transaction = nullptr) const;
 
 		utils::Logger& m_logger;
 

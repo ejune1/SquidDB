@@ -1,18 +1,19 @@
 #include "core/RowInfo.h"
 
+#include <atomic>
 #include <cstddef>
 #include <cstdint>
 
 namespace squiddb { namespace core {
 
-RowInfo::RowInfo(RowInfo::Status status, std::byte* data, std::uint16_t size) {
+RowInfo::RowInfo(RowInfo::Status status, std::byte* data, std::uint16_t size) :
+	m_dirty(false), m_creating(false), m_updating(false), m_deleting(false) {
 	m_status = status;
 	m_next = nullptr;
 	m_data = data;
 	m_size = size;
 	m_vFileIndex = 0;
 	m_vFileOffset = 0;
-	m_dirty = false;
 }
 
 RowInfo::Status RowInfo::getStatus() const {
@@ -21,6 +22,14 @@ RowInfo::Status RowInfo::getStatus() const {
 
 void RowInfo::setStatus(RowInfo::Status status) {
 	m_status = status;
+}
+
+std::size_t RowInfo::getTransactionId() const {
+	return m_transactionId.load();
+}
+
+void RowInfo::setTransactionId(std::size_t transactionId) {
+	m_transactionId.store(transactionId);
 }
 
 RowInfo* RowInfo::getNext() const {
@@ -61,11 +70,35 @@ void RowInfo::setVFileOffset(std::uint32_t vFileOffset) {
 }
 
 bool RowInfo::getDirty() const {
-	return m_dirty;
+	return m_dirty.load();
 }
 
 void RowInfo::setDirty(bool dirty) {
-	m_dirty = dirty;
+	m_dirty.store(dirty);
+}
+
+bool RowInfo::getCreating() const {
+	return m_creating.load();
+}
+
+void RowInfo::setCreating(bool creating) {
+	m_creating.store(creating);
+}
+
+bool RowInfo::getUpdating() const {
+	return m_updating.load();
+}
+
+void RowInfo::setUpdating(bool updating) {
+	m_updating.store(updating);
+}
+
+bool RowInfo::getDeleting() const {
+	return m_deleting.load();
+}
+
+void RowInfo::setDeleting(bool deleting) {
+	m_deleting.store(deleting);
 }
 
 }} // namespace

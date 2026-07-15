@@ -26,7 +26,14 @@ class Transaction {
 		void addAffectedRow(const std::byte* key, const std::uint16_t keySize, RowInfo* rowInfo);
 		void addAffectedRow(KeyRowInfo* keyRowInfo);
 
+		RowInfo* isolateRowInfo(RowInfo* rowInfo) const;
+
 	private:
+		RowInfo* isolateReadUncommitted(RowInfo* rowInfo) const;
+		RowInfo* isolateReadCommitted(RowInfo* rowInfo) const;
+		RowInfo* isolateRepeatableRead(RowInfo* rowInfo) const;
+		RowInfo* isolateSerializable(RowInfo* rowInfo) const;
+
 		const std::size_t m_transactionId;
 
 		// should be the min active transactionId - 1 when this tx is created

@@ -508,7 +508,7 @@ SkipListNode<K>* SkipList<K>::findNode(const K key) const {
 }
 
 template<typename K>
-TraverseContext<K>* SkipList<K>::traversePrevNodes(const K key, bool& duplicateKey) const {
+TraverseContext<K>* SkipList<K>::traversePrevNodes(const K key, bool& duplicateKey, Transaction* transaction) const {
 	if (m_initialized == false) {
 		throw std::runtime_error("SkipList<K>::traversePrevNodes not initialized");
 	}
@@ -533,7 +533,14 @@ TraverseContext<K>* SkipList<K>::traversePrevNodes(const K key, bool& duplicateK
 		assert(trail != nullptr);
 
 		if ((node != nullptr) && (key == node->getKey())) {
-			duplicateKey = true;
+			if (transaction == nullptr) {
+				duplicateKey = true;
+			} else {
+				RowInfo* rowInfo = transaction->isolateRowInfo(node->getRowInfo());
+				if ((rowInfo != nullptr) && (rowInfo->getDeleting() == false)) {
+					duplicateKey = true;
+				}
+			}
 		}
 
 		traverseContext->setPrevNode(level, trail);

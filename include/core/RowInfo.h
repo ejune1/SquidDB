@@ -1,6 +1,7 @@
 #ifndef ROWINFO_H
 #define ROWINFO_H
 
+#include <atomic>
 #include <cstddef>
 #include <cstdint>
 
@@ -21,6 +22,9 @@ class RowInfo {
 		Status getStatus() const;
 		void setStatus(Status status);
 
+		std::size_t getTransactionId() const;
+		void setTransactionId(std::size_t transactionId);
+
 		RowInfo* getNext() const;
 		void setNext(RowInfo* rowInfo);
 
@@ -38,8 +42,19 @@ class RowInfo {
 		bool getDirty() const;
 		void setDirty(bool dirty);
 
+		bool getCreating() const;
+		void setCreating(bool creating);
+
+		bool getUpdating() const;
+		void setUpdating(bool updating);
+
+		bool getDeleting() const;
+		void setDeleting(bool deleting);
+
 	private:
 		Status m_status;
+		std::atomic<std::size_t> m_transactionId;
+
 		RowInfo* m_next;
 
 		std::byte* m_data;
@@ -49,7 +64,10 @@ class RowInfo {
 		std::uint32_t m_vFileOffset;
 
 		// TODO use flags
-		bool m_dirty;
+		std::atomic<bool> m_dirty;
+		std::atomic<bool> m_creating;
+		std::atomic<bool> m_updating;
+		std::atomic<bool> m_deleting;
 };
 
 }} // namespace
