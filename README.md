@@ -1,43 +1,27 @@
 # SquidDB
 
-A lightweight, persistent, append only, relational row store built from scratch in C++. This project utilizes a probabilistic **SkipList** as its primary indexing structure and storage engine, providing $O(\log n)$ average time complexity for data operations.
+SquidDB is a lightweight database engine built in pure C++. It is persistent, using a combination of append only files: A WAL (write ahead log), value (row) files, and index (checkpoint) files. It is transactional, utilizing MVCC (multi version concurrency control) to enable standard isolation level views for transactions. SquidDB indexes are based on a SkipList, providing $O(\log n)$ average time complexity for data operations. SquidDB is a row store, not a key/value store, meaning the keys themselves are extracted from the rows (the values).  
 
 *Note: This is a personal project built for educational purposes*
 
-## 🏗️ Architecture & Query Pipeline
+## 🏗️ Architecture
 
-SquidDB processes queries through a traditional relational database pipeline:
-
-```mermaid
-graph LR
-    A[Client Connection] --> B[Network Head]
-    B --> C[Lexer & Parser]
-    C --> D[Query Planner]
-    D --> E[Execution Engine]
-    E --> F[Table Representation]
-    F --> G[SkipList]
-```
-
-1. **Network Head:** Handles incoming client TCP connections.
-2. **Lexer & Parser:** Tokenizes and parses a subset of SQL into an Abstract Syntax Tree (AST).
-3. **Query Planner:** Evaluates the AST to determine the optimal retrieval strategy (e.g., Index Point Lookup vs. Sequential Scan).
-4. **Execution Engine:** Executes the physical plan.
-5. **Table Representation:** Contains table, persistence,and index operations externally visible.
-6. **SkipList:** Data structure representing indexes (both primary and secondary).
+SquidDB processes requests through a Table abstraction of the underlying data structures. The Table owns properties such as the schema, file manager, and indexes. The indexes (both primary and secondary) are based on a SkipList and are fully managed by the Table object. SquidDB offers custom configuration and custom logging. A Squiddb head (SQL parser and execution engine) is planned based on completion of the engine.  
 
 ## 🚀 Current Project Status
 
 - [x] **Core Indexing:** SkipList insertion, removal, lookups, widths, iterators (in progress).
 - [X] **Storage Layer:** Table and row data, log data, schema, recovery and startup (in progress).
-- [ ] **Network Layer:** Multi-threaded TCP connection handling using basic sockets (planned).
-- [ ] **SQL Frontend:** Lexer and parser for a subset of SQL queries (planned).
-- [ ] **Execution Engine:** TBD (planned).
+- [ ] **Transactions:** MVCC supporting the 4 basic isolations levels for transactions (TBD).
+- [ ] **Multi-Threaded Support:** Fine grained locking supporting multiple clients (TBD).
+- [ ] **Extensive Testing:** Unit, integration, and system level testing and examples utilizing Catch2 framework (TBD).
 
 ## Recently Completed
 
 - Schema write/read
 - Basic Table class structure
 - Transaction layout
+- FileManager implementation
 
 ## Immediate Tasks (in no particular order)
 
