@@ -84,6 +84,26 @@ std::uint8_t SkipListNode<K>::getHeight() const {
 	return m_height;
 }
 
+template<typename K>
+void SkipListNode<K>::writeLock() {
+	m_mutex.lock();	
+}
+
+template<typename K>
+void SkipListNode<K>::writeUnlock() {
+	m_mutex.unlock();
+}
+
+template<typename K>
+void SkipListNode<K>::readLock() {
+	m_mutex.lock_shared();
+}
+
+template<typename K>
+void SkipListNode<K>::readUnlock() {
+	m_mutex.unlock_shared();
+}
+
 // explicit instantiation - we know what kinds of keys we will get
 template class SkipListNode<std::int32_t>;
 

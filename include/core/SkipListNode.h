@@ -5,6 +5,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <shared_mutex>
 
 namespace squiddb { namespace core {
 
@@ -29,6 +30,11 @@ class SkipListNode {
 
 		std::uint8_t getHeight() const;
 
+		void writeLock();
+		void writeUnlock();
+		void readLock();
+		void readUnlock();
+
 	private:
 		const K m_key;
 		RowInfo* m_rowInfo;
@@ -36,6 +42,8 @@ class SkipListNode {
 		const std::uint8_t m_height;
 		SkipListNode<K>** m_next;
 		size_t* m_width;
+
+		std::shared_mutex m_mutex;
 };
 
 }} // namespace

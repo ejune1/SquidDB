@@ -194,7 +194,7 @@ bool SkipList<K>::remove(const K key, Transaction* transaction) {
 	m_logger.log(utils::Logger::LogLevel::Trace, message);
 
 	bool duplicateKey = false;
-	TraverseContext<K>* traverseContext = traversePrevNodes(key, duplicateKey);
+	TraverseContext<K>* traverseContext = traversePrevNodes(key, duplicateKey, transaction);
 
 	if (duplicateKey == false) {
 		message = "SkipList<K>::remove key not found key: " + std::to_string(key);
