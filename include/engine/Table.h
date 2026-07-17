@@ -42,9 +42,12 @@ class Table {
 		bool updateRow(const void* key, void* row);
 
 		// uses primary
-		TableIterator* scan() const;
-		TableIterator* scan(const std::string& indexName) const;
-		TableIterator* rangeScan(const std::string& indexName, const void* startKey, const void* endKey) const;
+		TableIterator* scan();
+		TableIterator* scan(const std::string& indexName);
+		TableIterator* rangeScan(const std::string& indexName, const void* startKey, const void* endKey);
+
+		// must be called after using iterator
+		void destroyTableIterator(TableIterator* tableIterator);
 
 		void beginTransaction(core::ThreadContextManager* threadContextManager);
 		void commit(core::ThreadContextManager* threadContextManager);

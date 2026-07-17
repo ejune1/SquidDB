@@ -12,7 +12,9 @@
 namespace squiddb { namespace core {
 
 Transaction::Transaction(const std::size_t transactionId, const std::size_t viewpoint, const IsolationLevel isolationLevel) : 
-	m_transactionId(transactionId), m_viewpoint(viewpoint), m_isolationLevel(isolationLevel) { }
+	m_transactionId(transactionId), m_viewpoint(viewpoint), m_isolationLevel(isolationLevel) {
+	m_implicit = false;
+}
 
 Transaction::~Transaction() {
 	for (KeyRowInfo* keyRowInfo : m_keyRowInfo) {
@@ -90,6 +92,14 @@ RowInfo* Transaction::isolateRowInfo(RowInfo* rowInfo) const {
 	}
 
 	return isolatedInfo;
+}
+
+bool Transaction::isImplicit() const {
+	return m_implicit;
+}
+
+void Transaction::setImplicit(bool implicit) {
+	m_implicit = implicit;
 }
 
 RowInfo* Transaction::isolateReadUncommitted(RowInfo* rowInfo) const {

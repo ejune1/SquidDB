@@ -45,8 +45,8 @@ class SkipList : public engine::Index {
 		bool contains(const K key) const;
 
 		// iteration and scan (execution engine)
-		SkipListIterator<K> begin() const;
-		SkipListIterator<K> seek(const K key, const std::optional<K> endKey = std::nullopt) const;
+		SkipListIterator<K> begin(Transaction* transaction = nullptr) const;
+		SkipListIterator<K> seek(const K key, const std::optional<K> endKey = std::nullopt, Transaction* transaction = nullptr) const;
 		SkipListIterator<K> end() const;
 
 		// statistical (query planner)
@@ -60,8 +60,8 @@ class SkipList : public engine::Index {
 		bool deleteRow(const void* key, Transaction* transaction) override;
 		bool updateRow(const void* key, void* row, const std::uint16_t size, Transaction* transaction) override;
 
-		engine::TableIterator* scan() const;
-		engine::TableIterator* rangeScan(const void* startKey, const void* endKey) const;
+		engine::TableIterator* scan(Transaction* transaction) const override;
+		engine::TableIterator* rangeScan(const void* startKey, const void* endKey, Transaction* transaction) const override;
 
 		// this needs to be fast - called on every new node
 		static inline std::uint8_t generateNodeHeight(std::uint8_t maxNodeHeight) {

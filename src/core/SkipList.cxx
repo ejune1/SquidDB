@@ -92,12 +92,8 @@ bool SkipList<K>::insert(const K key, std::byte* data, const std::uint16_t size,
 	std::string message = "SkipList<K>::insert key: " + std::to_string(key) + " size: " + std::to_string(size);
 	m_logger.log(utils::Logger::LogLevel::Trace, message);
 
-	if (nodeHeight == 0) {
-		nodeHeight = SkipList<K>::generateNodeHeight(m_maxNodeHeight);
-	}
-
 	bool duplicateKey = false;
-	TraverseContext<K>* traverseContext = traversePrevNodes(key, duplicateKey);
+	TraverseContext<K>* traverseContext = traversePrevNodes(key, duplicateKey, transaction);
 
 	if ((m_primaryIndex == true) && (duplicateKey == true)) {
 		std::string message = "SkipList<K>::insert duplicate key (primary) key: " + std::to_string(key);
@@ -107,38 +103,73 @@ bool SkipList<K>::insert(const K key, std::byte* data, const std::uint16_t size,
 		return false;
 	}
 
-	SkipListNode<K>* insertNode = new SkipListNode<K>(key, nodeHeight);
-	RowInfo* rowInfo = new RowInfo(RowInfo::Status::None, data, size);
-	insertNode->setRowInfo(rowInfo);
+	RowInfo* rowInfo = nullptr;
+	SkipListNode<K>* insertNode = nullptr;
+	SkipListNode<K>* nextLevel0 = traverseContext->getPrevNode(0 /* level */)->getNext(0 /* level */);
 
-	// increment width for all levels above the height of this node
-	for (uint8_t level = m_maxNodeHeight - 1; level >= nodeHeight; level--) {
-		SkipListNode<K>* prev = traverseContext->getPrevNode(level);
-		assert(prev != nullptr);
+	// key exists but has been deleted - tack on new info
+	if ((nextLevel0 != nullptr) && (key == nextLevel0->getKey())) {
+		assert(transaction != nullptr);
 
-		prev->setWidth(level, prev->getWidth(level) + 1);
-	}
+		insertNode = nextLevel0;
+		rowInfo = transaction->isolateRowInfo(insertNode->getRowInfo());
+		assert((rowInfo != nullptr) && (rowInfo->getDeleting() == true));
 
-	std::uint8_t level = nodeHeight;
-	while (level-- > 0) {
-		SkipListNode<K>* prev = traverseContext->getPrevNode(level);
-		SkipListNode<K>* next = prev->getNext(level);
+		RowInfo* newRowInfo = new RowInfo(RowInfo::Status::Uncommitted, data, size);
+		newRowInfo->setTransactionId(transaction->getTransactionId());
+		newRowInfo->setCreating(true);
+		newRowInfo->setDirty(true);
 
-		assert((prev == m_head) || (key > prev->getKey()));
-		assert((next == nullptr) || (key <= next->getKey()));
+		newRowInfo->setNext(rowInfo->getNext());
+		rowInfo->setNext(newRowInfo);
 
-		size_t prevNodeRank = traverseContext->getPrevRank(level);
-		size_t insertNodeRank = traverseContext->getRank();
-		size_t distance = insertNodeRank - prevNodeRank;
+		rowInfo = newRowInfo;
 
-		size_t prevWidth = distance + 1;
-		size_t insertWidth = (prev->getWidth(level) == 0) ? 0 : (prev->getWidth(level) - distance);
+	} else {
+		if (nodeHeight == 0) {
+			nodeHeight = SkipList<K>::generateNodeHeight(m_maxNodeHeight);
+		}
 
-		prev->setNext(level, insertNode);
-		prev->setWidth(level, prevWidth);
+		insertNode = new SkipListNode<K>(key, nodeHeight);
+		rowInfo = new RowInfo(RowInfo::Status::Committed, data, size);
 
-		insertNode->setNext(level, next);
-		insertNode->setWidth(level, insertWidth);
+		if (transaction != nullptr) {
+			rowInfo->setStatus(RowInfo::Status::Uncommitted);
+			rowInfo->setTransactionId(transaction->getTransactionId());
+			rowInfo->setCreating(true);
+			rowInfo->setDirty(true);
+		}
+		insertNode->setRowInfo(rowInfo);
+
+		// increment width for all levels above the height of this node
+		for (uint8_t level = m_maxNodeHeight - 1; level >= nodeHeight; level--) {
+			SkipListNode<K>* prev = traverseContext->getPrevNode(level);
+			assert(prev != nullptr);
+
+			prev->setWidth(level, prev->getWidth(level) + 1);
+		}
+
+		std::uint8_t level = nodeHeight;
+		while (level-- > 0) {
+			SkipListNode<K>* prev = traverseContext->getPrevNode(level);
+			SkipListNode<K>* next = prev->getNext(level);
+
+			assert((prev == m_head) || (key > prev->getKey()));
+			assert((next == nullptr) || (key <= next->getKey()));
+
+			size_t prevNodeRank = traverseContext->getPrevRank(level);
+			size_t insertNodeRank = traverseContext->getRank();
+			size_t distance = insertNodeRank - prevNodeRank;
+
+			size_t prevWidth = distance + 1;
+			size_t insertWidth = (prev->getWidth(level) == 0) ? 0 : (prev->getWidth(level) - distance);
+
+			prev->setNext(level, insertNode);
+			prev->setWidth(level, prevWidth);
+
+			insertNode->setNext(level, next);
+			insertNode->setWidth(level, insertWidth);
+		}
 	}
 
 	delete traverseContext;
@@ -153,7 +184,7 @@ bool SkipList<K>::insert(const K key, std::byte* data, const std::uint16_t size,
 }
 
 template<typename K>
-bool SkipList<K>::remove(const K key, Transaction* /* transaction */) {
+bool SkipList<K>::remove(const K key, Transaction* transaction) {
 	// TODO transaction needs background delete
 	if (m_initialized == false) {
 		throw std::runtime_error("SkipList<K>::remove not initialized");
@@ -173,50 +204,72 @@ bool SkipList<K>::remove(const K key, Transaction* /* transaction */) {
 		return false;
 	}
 
-	SkipListNode<K>* removeNode = nullptr;
+	if (transaction != nullptr) {
+		SkipListNode<K>* nextLevel0 = traverseContext->getPrevNode(0 /* level */)->getNext(0 /* level */);
 
-	std::uint8_t level = m_maxNodeHeight;
-	while (level-- > 0) {
-		SkipListNode<K>* prev = traverseContext->getPrevNode(level);
-		SkipListNode<K>* next = prev->getNext(level);
+		assert(nextLevel0 != nullptr);
+		assert(key == nextLevel0->getKey());
 
-		assert((prev == m_head) || (key > prev->getKey()));
-		assert((next == nullptr) || (key <= next->getKey()));
+		RowInfo* rowInfo = transaction->isolateRowInfo(nextLevel0->getRowInfo());
+		assert(rowInfo->getDeleting() == false);
 
-		if ((next != nullptr) && (key == next->getKey())) {
-			assert((removeNode == nullptr) || (removeNode == next));
+		RowInfo* newRowInfo = new RowInfo(RowInfo::Status::Uncommitted);
+		newRowInfo->setTransactionId(transaction->getTransactionId());
+		newRowInfo->setDeleting(true);
+		newRowInfo->setDirty(true);
 
-			removeNode = next;
-			size_t prevWidth = (prev->getWidth(level) + removeNode->getWidth(level)) - 1;
+		newRowInfo->setNext(rowInfo->getNext());
+		rowInfo->setNext(newRowInfo);
 
-			prev->setNext(level, next->getNext(level));
-			prev->setWidth(level, prevWidth);
+		transaction->addAffectedRow(reinterpret_cast<const std::byte*>(nextLevel0->getKeyRef()), sizeof(K), newRowInfo);
 
-			next->setNext(level, nullptr);
-		} else {
-			//decrement width for all levels above remove node's height
-			prev->setWidth(level, prev->getWidth(level) - 1);
+	} else {
+		SkipListNode<K>* removeNode = nullptr;
+
+		std::uint8_t level = m_maxNodeHeight;
+		while (level-- > 0) {
+			SkipListNode<K>* prev = traverseContext->getPrevNode(level);
+			SkipListNode<K>* next = prev->getNext(level);
+
+			assert((prev == m_head) || (key > prev->getKey()));
+			assert((next == nullptr) || (key <= next->getKey()));
+
+			if ((next != nullptr) && (key == next->getKey())) {
+				assert((removeNode == nullptr) || (removeNode == next));
+
+				removeNode = next;
+				size_t prevWidth = (prev->getWidth(level) + removeNode->getWidth(level)) - 1;
+
+				prev->setNext(level, next->getNext(level));
+				prev->setWidth(level, prevWidth);
+
+				next->setNext(level, nullptr);
+			} else {
+				//decrement width for all levels above remove node's height
+				prev->setWidth(level, prev->getWidth(level) - 1);
+			}
 		}
-	}
-	assert(removeNode != nullptr);
+		assert(removeNode != nullptr);
 
-	RowInfo* rowInfo = removeNode->getRowInfo();
-	removeNode->setRowInfo(nullptr);
+		RowInfo* rowInfo = removeNode->getRowInfo();
+		removeNode->setRowInfo(nullptr);
 
-	while (rowInfo != nullptr) {
-		RowInfo* rowInfoToDelete = rowInfo;
-		rowInfo = rowInfo->getNext();
+		while (rowInfo != nullptr) {
+			RowInfo* rowInfoToDelete = rowInfo;
+			rowInfo = rowInfo->getNext();
 
-		std::byte* dataToDelete = rowInfoToDelete->getData();
-		rowInfoToDelete->setData(nullptr, 0 /* size */);
+			std::byte* dataToDelete = rowInfoToDelete->getData();
+			rowInfoToDelete->setData(nullptr, 0 /* size */);
 
-		if (dataToDelete != nullptr) {
-			std::free(dataToDelete);
+			if (dataToDelete != nullptr) {
+				std::free(dataToDelete);
+			}
+			delete rowInfoToDelete;
 		}
-		delete rowInfoToDelete;
+
+		delete removeNode;
 	}
 
-	delete removeNode;
 	delete traverseContext;
 
 	m_size.fetch_sub(1, std::memory_order_relaxed);
@@ -235,17 +288,26 @@ bool SkipList<K>::update(const K key, std::byte* data, const std::uint16_t size,
 	SkipListNode<K>* foundNode = findNode(key);
 
 	if (foundNode != nullptr) {
-		// TODO isolate
-		std::byte* dataToDelete = foundNode->getRowInfo()->getData();
-		foundNode->getRowInfo()->setData(data, size);
-
-		if (dataToDelete != nullptr) {
-			std::free(dataToDelete);
-		}
-
 		if (transaction != nullptr) {
-			// TODO opaque keys
-			transaction->addAffectedRow(reinterpret_cast<const std::byte*>(foundNode->getKeyRef()), sizeof(K), foundNode->getRowInfo());
+			RowInfo* rowInfo = transaction->isolateRowInfo(foundNode->getRowInfo());
+
+			RowInfo* newRowInfo = new RowInfo(RowInfo::Status::Uncommitted, data, size);
+			newRowInfo->setTransactionId(transaction->getTransactionId());
+			newRowInfo->setUpdating(true);
+			newRowInfo->setDirty(true);
+
+			newRowInfo->setNext(rowInfo->getNext());
+			rowInfo->setNext(newRowInfo);
+			
+			transaction->addAffectedRow(reinterpret_cast<const std::byte*>(foundNode->getKeyRef()), sizeof(K), newRowInfo);
+
+		} else {
+			std::byte* dataToDelete = foundNode->getRowInfo()->getData();
+			foundNode->getRowInfo()->setData(data, size);
+
+			if (dataToDelete != nullptr) {
+				std::free(dataToDelete);
+			}
 		}
 
 		return true;
@@ -294,16 +356,16 @@ bool SkipList<K>::contains(const K key) const {
 }
 
 template<typename K>
-SkipListIterator<K> SkipList<K>::begin() const {
+SkipListIterator<K> SkipList<K>::begin(Transaction* transaction) const {
 	if (m_initialized == false) {
 		throw std::runtime_error("SkipList<K>::begin not initialized");
 	}
 
-	return SkipListIterator<K>(m_head->getNext(0 /* level */), std::nullopt);
+	return SkipListIterator<K>(m_head->getNext(0 /* level */), std::nullopt, transaction);
 }
 
 template<typename K>
-SkipListIterator<K> SkipList<K>::seek(const K key, const std::optional<K> endKey) const {
+SkipListIterator<K> SkipList<K>::seek(const K key, const std::optional<K> endKey, Transaction* transaction) const {
 	if (m_initialized == false) {
 		throw std::runtime_error("SkipList<K>::seek not initialized");
 	}
@@ -336,7 +398,7 @@ SkipListIterator<K> SkipList<K>::seek(const K key, const std::optional<K> endKey
 		node = trail;
 	}
 
-	return SkipListIterator<K>(lowerBound, endKey);
+	return SkipListIterator<K>(lowerBound, endKey, transaction);
 }
 
 template<typename K>
@@ -463,17 +525,17 @@ bool SkipList<K>::updateRow(const void* key, void* row, const std::uint16_t size
 }
 
 template<typename K>
-engine::TableIterator* SkipList<K>::scan() const {
-	SkipListIterator<K>* tableIterator = new SkipListIterator<K>(begin());
+engine::TableIterator* SkipList<K>::scan(Transaction* transaction) const {
+	SkipListIterator<K>* tableIterator = new SkipListIterator<K>(m_head->getNext(0 /* level */), std::nullopt, transaction);
 	return tableIterator;
 }
 
 template<typename K>
-engine::TableIterator* SkipList<K>::rangeScan(const void* startKey, const void* endKey) const {
+engine::TableIterator* SkipList<K>::rangeScan(const void* startKey, const void* endKey, Transaction* transaction) const {
 	const K rangeStartKey = *static_cast<const K*>(startKey);
 	const K rangeEndKey = *static_cast<const K*>(endKey);
 	
-	SkipListIterator<K>* tableIterator = new SkipListIterator<K>(seek(rangeStartKey, rangeEndKey));
+	SkipListIterator<K>* tableIterator = new SkipListIterator<K>(seek(rangeStartKey, rangeEndKey, transaction));
 	return tableIterator;
 }
 

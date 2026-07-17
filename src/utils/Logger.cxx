@@ -48,7 +48,7 @@ void Logger::start() {
 
 void Logger::stop() {
 	log(LogLevel::Info, "Logger::stop Logger got stop signal");
-	std::this_thread::sleep_for(std::chrono::seconds(1));
+	//std::this_thread::sleep_for(std::chrono::seconds(1));
 
 	m_stop = true;
 	m_cv.notify_one();

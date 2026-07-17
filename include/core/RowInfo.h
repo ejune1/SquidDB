@@ -16,6 +16,7 @@ class RowInfo {
 			Uncommitted = 3
 		};
 
+		RowInfo(Status status);
 		RowInfo(Status status, std::byte* data, std::uint16_t size);
 		~RowInfo() = default;
 

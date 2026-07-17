@@ -3,6 +3,7 @@
 
 #include "engine/TableIterator.h"
 #include "core/SkipListNode.h"
+#include "core/Transaction.h"
 
 #include <cstddef>
 #include <iterator>
@@ -20,7 +21,7 @@ class SkipListIterator : public engine::TableIterator {
 		using reference         = K;
 
 		SkipListIterator();
-		SkipListIterator(SkipListNode<K>* startNode, std::optional<int> endKey);
+		SkipListIterator(SkipListNode<K>* startNode, std::optional<int> endKey, Transaction* transaction = nullptr);
 
 		reference operator*() const;
 		SkipListIterator<K>& operator++();
@@ -39,6 +40,9 @@ class SkipListIterator : public engine::TableIterator {
 	private:
 		const SkipListNode<K>* m_current;
 		std::optional<K> m_endKey;
+
+		void transactionalAdvance();
+		Transaction* m_transaction;
 };
 
 }} // namespace

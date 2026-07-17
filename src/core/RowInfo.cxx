@@ -6,14 +6,20 @@
 
 namespace squiddb { namespace core {
 
-RowInfo::RowInfo(RowInfo::Status status, std::byte* data, std::uint16_t size) :
-	m_dirty(false), m_creating(false), m_updating(false), m_deleting(false) {
+RowInfo::RowInfo(RowInfo::Status status) : 
+	m_transactionId(0), m_dirty(false), m_creating(false), m_updating(false), m_deleting(false) {
 	m_status = status;
 	m_next = nullptr;
-	m_data = data;
-	m_size = size;
+	m_data = nullptr;
+	m_size = 0;
 	m_vFileIndex = 0;
 	m_vFileOffset = 0;
+}
+
+RowInfo::RowInfo(RowInfo::Status status, std::byte* data, std::uint16_t size) :
+	RowInfo(status) {
+	m_data = data;
+	m_size = size;
 }
 
 RowInfo::Status RowInfo::getStatus() const {

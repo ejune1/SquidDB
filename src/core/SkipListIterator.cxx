@@ -1,6 +1,7 @@
 #include "core/SkipListIterator.h"
 
 #include "core/SkipListNode.h"
+#include "core/Transaction.h"
 
 #include <cstdint>
 #include <iterator>
@@ -12,14 +13,18 @@ template<typename K>
 SkipListIterator<K>::SkipListIterator() {
 	m_current = nullptr;
 	m_endKey = std::nullopt;
+	m_transaction = nullptr;
 }
 
 template<typename K>
-SkipListIterator<K>::SkipListIterator(SkipListNode<K>* startNode, std::optional<int> endKey) {
+SkipListIterator<K>::SkipListIterator(SkipListNode<K>* startNode, std::optional<int> endKey, Transaction* transaction) {
 	m_current = startNode;
 	m_endKey = endKey;
+	m_transaction = transaction;
 
-	if ((m_endKey.has_value() == true) && (m_current->getKey() > m_endKey)) {
+	transactionalAdvance();
+
+	if ((m_endKey.has_value() == true) && (m_current != nullptr) && (m_current->getKey() > m_endKey)) {
 		m_current = nullptr;
 	}
 }
@@ -33,8 +38,9 @@ template<typename K>
 SkipListIterator<K>& SkipListIterator<K>::operator++() {
 	if (m_current != nullptr) {
 		m_current = m_current->getNext(0 /* level */);
+		transactionalAdvance();
 
-		if ((m_endKey.has_value() == true) && (m_current->getKey() > m_endKey)) {
+		if ((m_endKey.has_value() == true) && (m_current != nullptr) && (m_current->getKey() > m_endKey)) {
 			m_current = nullptr;
 		}
 	}
@@ -67,8 +73,9 @@ bool SkipListIterator<K>::valid() const {
 template<typename K>
 void SkipListIterator<K>::next() {
 	m_current = m_current->getNext(0 /* level */);
+	transactionalAdvance();
 
-	if ((m_endKey.has_value() == true) && (m_current->getKey() > m_endKey)) {
+	if ((m_endKey.has_value() == true) && (m_current != nullptr) && (m_current->getKey() > m_endKey)) {
 		m_current = nullptr;
 	}
 }
@@ -81,8 +88,32 @@ const void* SkipListIterator<K>::getKey() const {
 
 template<typename K>
 const void* SkipListIterator<K>::getData() const {
-	// TODO isolate
-	return m_current->getRowInfo()->getData();
+	RowInfo* rowInfo = m_current->getRowInfo();
+
+	if (m_transaction != nullptr) {
+		rowInfo = m_transaction->isolateRowInfo(rowInfo);
+	}
+
+	return rowInfo->getData();
+}
+
+template<typename K>
+void SkipListIterator<K>::transactionalAdvance() {
+	if ((m_transaction != nullptr) && (m_current != nullptr)) {
+		RowInfo* rowInfo = m_current->getRowInfo();
+		rowInfo = m_transaction->isolateRowInfo(rowInfo);
+
+		while ((rowInfo == nullptr) || (rowInfo->getDeleting() == true)) {
+			m_current = m_current->getNext(0 /* level */);
+
+			if (m_current == nullptr) {
+				return;
+			}
+
+			rowInfo = m_current->getRowInfo();
+			rowInfo = m_transaction->isolateRowInfo(rowInfo);
+		}
+	}
 }
 
 // explicit instantiation - we know what kinds of keys we will get

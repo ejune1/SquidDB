@@ -78,7 +78,7 @@ TEST_CASE("Table test create simple schema insert rows check scan", "[table]") {
 
 	REQUIRE(it->valid() == false);
 
-	delete it;
+	table1.destroyTableIterator(it);
 
 	table1.shutdown();
 	logger.stop();
@@ -115,7 +115,7 @@ TEST_CASE("Table test create simple schema insert rows remove rows check scan", 
 	engine::TableIterator* it = table1.scan();
 	REQUIRE(it->valid() == false);
 
-	delete it;
+	table1.destroyTableIterator(it);;
 
 	table1.shutdown();
 	logger.stop();
@@ -165,7 +165,7 @@ TEST_CASE("Table test create simple schema insert rows check range scan with sta
 
 	REQUIRE(it->valid() == false);
 
-	delete it;
+	table1.destroyTableIterator(it);
 
 	table1.shutdown();
 	logger.stop();

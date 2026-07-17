@@ -133,6 +133,7 @@ bool Table::insertRow(void* row) {
 	if (implicitTransaction == true) {
 		beginTransaction(threadContextManager);
 		transaction = threadContext->getTransaction();
+		transaction->setImplicit(true);
 	}
 
 	bool result = m_primary->insertRow(key, row, rowSize, transaction);
@@ -157,6 +158,7 @@ bool Table::deleteRow(const void* key) {
 	if (implicitTransaction == true) {
 		beginTransaction(threadContextManager);
 		transaction = threadContext->getTransaction();
+		transaction->setImplicit(true);
 	}
 
 	bool result =  m_primary->deleteRow(key, transaction);
@@ -185,6 +187,7 @@ bool Table::updateRow(const void* key, void* row) {
 	if (implicitTransaction == true) {
 		beginTransaction(threadContextManager);
 		transaction = threadContext->getTransaction();
+		transaction->setImplicit(true);
 	}
 
 	bool result = m_primary->updateRow(key, row, rowSize, transaction);
@@ -198,21 +201,63 @@ bool Table::updateRow(const void* key, void* row) {
 	return result;
 }
 
-TableIterator* Table::scan() const {
-	// TODO: transactions
-	return m_primary->scan();
+TableIterator* Table::scan() {
+	core::ThreadContextManager* threadContextManager = core::ThreadContextManager::getInstance();
+	core::ThreadContext* threadContext = threadContextManager->getThreadContext();
+	core::Transaction* transaction = threadContext->getTransaction();
+
+	bool implicitTransaction = (transaction == nullptr);
+	if (implicitTransaction == true) {
+		beginTransaction(threadContextManager);
+		transaction = threadContext->getTransaction();
+		transaction->setImplicit(true);
+	}
+
+	return m_primary->scan(transaction);
 }
 
-TableIterator* Table::scan(const std::string& /* indexName */) const {
-	// TODO transactios, secondary
+TableIterator* Table::scan(const std::string& /* indexName */) {
+	// TODO secondary
+	core::ThreadContextManager* threadContextManager = core::ThreadContextManager::getInstance();
+	core::ThreadContext* threadContext = threadContextManager->getThreadContext();
+	core::Transaction* transaction = threadContext->getTransaction();
 
-	return m_primary->scan();
+	bool implicitTransaction = (transaction == nullptr);
+	if (implicitTransaction == true) {
+		beginTransaction(threadContextManager);
+		transaction = threadContext->getTransaction();
+		transaction->setImplicit(true);
+	}
+
+	return m_primary->scan(transaction);
 }
 
-TableIterator* Table::rangeScan(const std::string& /* indexName */, const void* startKey, const void* endKey) const {
-	// TODO transactions, secondary
+TableIterator* Table::rangeScan(const std::string& /* indexName */, const void* startKey, const void* endKey) {
+	// TODO secondary
+	core::ThreadContextManager* threadContextManager = core::ThreadContextManager::getInstance();
+	core::ThreadContext* threadContext = threadContextManager->getThreadContext();
+	core::Transaction* transaction = threadContext->getTransaction();
 
-	return m_primary->rangeScan(startKey, endKey);
+	bool implicitTransaction = (transaction == nullptr);
+	if (implicitTransaction == true) {
+		beginTransaction(threadContextManager);
+		transaction = threadContext->getTransaction();
+		transaction->setImplicit(true);
+	}
+
+	return m_primary->rangeScan(startKey, endKey, transaction);
+}
+
+void Table::destroyTableIterator(TableIterator* tableIterator) {
+	core::ThreadContextManager* threadContextManager = core::ThreadContextManager::getInstance();
+	core::ThreadContext* threadContext = threadContextManager->getThreadContext();
+	core::Transaction* transaction = threadContext->getTransaction();
+
+	if (transaction->isImplicit() == true) {
+		commit(threadContextManager);
+	}
+
+	delete tableIterator;
 }
 
 void Table::beginTransaction(core::ThreadContextManager* threadContextManager) {

@@ -28,6 +28,9 @@ class Transaction {
 
 		RowInfo* isolateRowInfo(RowInfo* rowInfo) const;
 
+		bool isImplicit() const;
+		void setImplicit(bool implicit);
+
 	private:
 		RowInfo* isolateReadUncommitted(RowInfo* rowInfo) const;
 		RowInfo* isolateReadCommitted(RowInfo* rowInfo) const;
@@ -42,6 +45,8 @@ class Transaction {
 		const IsolationLevel m_isolationLevel;
 
 		std::vector<KeyRowInfo*> m_keyRowInfo;
+
+		bool m_implicit;
 };
 
 }} // namespace
