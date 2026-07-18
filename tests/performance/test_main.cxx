@@ -4,6 +4,7 @@
 #include "utils/FileCleanup.h"
 #include "utils/Logger.h"
 
+#include <chrono>
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
@@ -37,6 +38,7 @@ void insertPerformance() {
 	table1.finalizeSchema();
 
 	fprintf(stderr, "Inserting 1,000,000 rows..\n");
+	auto start = std::chrono::steady_clock::now();
 
 	for (std::int32_t x = 0; x < 1000000; x++) {
 		std::int32_t* row = static_cast<std::int32_t*>(std::malloc(sizeof(std::int32_t)));
@@ -48,4 +50,12 @@ void insertPerformance() {
 			fprintf(stderr, "Inserted %d rows..\n", x);
 		}
 	}
+
+	auto end = std::chrono::steady_clock::now();
+	auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+
+	fprintf(stderr, "Inserted 1,000,000 rows in %ld ms\n", elapsed.count());
+
+	table1.shutdown();
+	logger.stop();
 }
