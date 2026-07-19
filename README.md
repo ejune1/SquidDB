@@ -85,9 +85,9 @@ mkdir data
 ```
 
 #### Run the Test Suites (Verbose Mode)
-Run the test binaries directly to see full Catch2 output, including passing assertions:
+Run the test binaries (separately) to see full Catch2 output, including passing assertions:
 ```bash
-./build/unit_test_runner -s
-./build/integration_test_runner -s
-./build/performance_test_runner
+$ ./build/unit_test_runner -s
+$ ./build/integration_test_runner -s
+$ ./build/performance_test_runner
 ```
