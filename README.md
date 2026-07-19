@@ -6,7 +6,7 @@ SquidDB is a lightweight database engine built in pure C++. It is persistent, us
 
 ## 🏗️ Architecture
 
-SquidDB processes requests through a Table abstraction of the underlying data structures. The Table owns properties such as the schema, file manager, and indexes. The indexes (both primary and secondary) are based on a SkipList and are fully managed by the Table object. SquidDB offers custom configuration and custom logging. A Squiddb head (SQL parser and execution engine) is planned based on completion of the engine.  
+SquidDB processes requests through a Table abstraction of the underlying data structures. The Table owns properties such as the schema, file manager, and indexes. The indexes (both primary and secondary) are based on a SkipList and are fully managed by the Table object. SquidDB offers custom configuration and custom logging. A SquidDB head (SQL parser and execution engine) is planned based on completion of the engine.  
 
 ## 🚀 Current Project Status
 
@@ -71,16 +71,10 @@ To build both the production application and the test suite:
 cmake --build build
 ```
 
-#### Build Production Only
-To compile only the production application executable:
+#### Create Data Directory
+Required for testing:
 ```bash
-cmake --build build --target squid
-```
-
-#### Build Test Suite Only
-To compile only the tests:
-```bash
-cmake --build build --target test_runner
+mkdir data
 ```
 
 ### 3. Running the Project
@@ -90,8 +84,10 @@ cmake --build build --target test_runner
 ./build/squid
 ```
 
-#### Run the Test Suite (Verbose Mode)
-Run the test binary directly to see full Catch2 output, including passing assertions:
+#### Run the Test Suites (Verbose Mode)
+Run the test binaries directly to see full Catch2 output, including passing assertions:
 ```bash
-./build/test_runner -s
+./build/unit_test_runner -s
+./build/integration_test_runner -s
+./build/performance_test_runner
 ```
