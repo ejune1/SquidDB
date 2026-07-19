@@ -35,7 +35,7 @@ class SkipList : public engine::Index {
 			const std::uint16_t size, 
 			std::uint8_t nodeHeight = 0,
 			Transaction* transaction = nullptr
-			);
+		);
 
 		bool remove(const K key, Transaction* transaction = nullptr);
 		bool update(const K key, std::byte* data, const std::uint16_t size, Transaction* transaction = nullptr);
@@ -89,7 +89,12 @@ class SkipList : public engine::Index {
 
 	private:
 		SkipListNode<K>* findNode(const K key) const;
-		TraverseContext<K>* traversePrevNodes(const K key, bool& duplicateKey, Transaction* transaction = nullptr) const;
+		TraverseContext<K>* traversePrevNodes(
+			const K key, 
+			bool& duplicateKey, 
+			Transaction* transaction = nullptr,
+			LockType lockType = LockType::None
+		) const;
 
 		utils::Logger& m_logger;
 
