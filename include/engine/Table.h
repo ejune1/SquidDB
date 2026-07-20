@@ -24,6 +24,8 @@ class Table {
 
 		~Table();
 
+		size_t memoryUsageMB() const;
+
 		// read schema from disk if it exists, initialize files, and startup or recover
 		void initialize();
 		// startup is currently recover only

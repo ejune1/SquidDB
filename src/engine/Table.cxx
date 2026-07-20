@@ -50,6 +50,19 @@ Table::~Table() {
 	}
 }
 
+size_t Table::memoryUsageMB() const {
+	std::size_t size = m_primary->memoryUsageMB();
+
+	// TODO don't count shared allocations
+	for (int x = 0; x < m_secondarySize; x++) {
+		if (m_secondary[x] != nullptr) {
+			size += m_secondary[x]->memoryUsageMB();
+		}
+	}
+
+	return size;
+}
+
 void Table::initialize() {
 	m_logger.log(utils::Logger::LogLevel::Info, "Table::initialize initializing table " + m_name);
 	std::string schemaFilePath = m_dataPath + m_name + ".ss";
