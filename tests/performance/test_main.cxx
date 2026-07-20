@@ -56,6 +56,9 @@ void insertPerformance() {
 
 	fprintf(stderr, "Inserted 1,000,000 rows in %ld ms\n", elapsed.count());
 
+	std::size_t memory = table1.memoryUsageMB();
+	fprintf(stderr, "Memory usage %zu MB\n", memory);
+
 	table1.shutdown();
 	logger.stop();
 }
