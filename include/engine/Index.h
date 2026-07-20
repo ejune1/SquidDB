@@ -19,6 +19,8 @@ class Index {
 
 		virtual TableIterator* scan(core::Transaction* transaction) const = 0;
 		virtual TableIterator* rangeScan(const void* startKey, const void* endKey, core::Transaction* transaction) const = 0;
+		
+		virtual size_t memoryUsageMB() const = 0;
 };
 
 }} // namespace

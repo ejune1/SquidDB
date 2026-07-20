@@ -53,7 +53,7 @@ class SkipList : public engine::Index {
 		bool empty() const;
 		size_t size(const bool calculate = false) const;
 		size_t estimateRangeCardinality(const K lowKey, const K highKey) const;
-		size_t memoryUsageMB() const;
+		size_t memoryUsageMB() const override;
 
 		// Index methods
 		bool insertRow(const void* key, void* row, const std::uint16_t size, Transaction* transaction) override;
