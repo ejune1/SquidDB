@@ -26,6 +26,7 @@ SkipList<K>::SkipList(utils::Logger& logger, const bool primaryIndex, const std:
 	m_head = nullptr;
 	m_initialized = false;
 	m_size = 0;
+	m_sequenceLock = 0;
 }
 
 template<typename K>
@@ -93,14 +94,28 @@ bool SkipList<K>::insert(const K key, std::byte* data, const std::uint16_t size,
 	std::string message = "SkipList<K>::insert key: " + std::to_string(key) + " size: " + std::to_string(size);
 	m_logger.log(utils::Logger::LogLevel::Trace, message);
 
-	bool duplicateKey = false;
-	TraverseContext<K>* traverseContext = traversePrevNodes(key, duplicateKey, transaction, LockType::Write);
+	RETRY:
+		std::size_t sequenceLock = m_sequenceLock.load(std::memory_order_acquire);
+		if (sequenceLock % 2 != 0) {
+			goto RETRY;
+		}
+
+		bool duplicateKey = false;
+		TraverseContext<K>* traverseContext = traversePrevNodes(key, duplicateKey, transaction, LockType::Write);
+
+		if (m_sequenceLock.compare_exchange_weak(sequenceLock, sequenceLock + 1, std::memory_order_release, std::memory_order_relaxed) == false) {
+			traverseContext->unlockAll();
+			delete traverseContext;
+			goto RETRY;
+		}
 
 	if ((m_primaryIndex == true) && (duplicateKey == true)) {
 		std::string message = "SkipList<K>::insert duplicate key (primary) key: " + std::to_string(key);
 		m_logger.log(utils::Logger::LogLevel::Debug, message);
 
 		traverseContext->unlockAll();
+		m_sequenceLock.fetch_add(1, std::memory_order_release);
+
 		delete traverseContext;
 		return false;
 	}
@@ -180,6 +195,8 @@ bool SkipList<K>::insert(const K key, std::byte* data, const std::uint16_t size,
 	insertNode->writeUnlock();
 	traverseContext->unlockAll();
 
+	m_sequenceLock.fetch_add(1, std::memory_order_release);
+
 	delete traverseContext;
 
 	if (transaction != nullptr) {
@@ -201,14 +218,28 @@ bool SkipList<K>::remove(const K key, Transaction* transaction) {
 	std::string message = "SkipList<K>::remove key: " + std::to_string(key);
 	m_logger.log(utils::Logger::LogLevel::Trace, message);
 
-	bool duplicateKey = false;
-	TraverseContext<K>* traverseContext = traversePrevNodes(key, duplicateKey, transaction, LockType::Write);
+	RETRY:
+		std::size_t sequenceLock = m_sequenceLock.load(std::memory_order_acquire);
+		if (sequenceLock % 2 != 0) {
+			goto RETRY;
+		}
+
+		bool duplicateKey = false;
+		TraverseContext<K>* traverseContext = traversePrevNodes(key, duplicateKey, transaction, LockType::Write);
+
+		if (m_sequenceLock.compare_exchange_weak(sequenceLock, sequenceLock + 1, std::memory_order_release, std::memory_order_relaxed) == false) {
+			traverseContext->unlockAll();
+			delete traverseContext;
+			goto RETRY;
+		}
 
 	if (duplicateKey == false) {
 		message = "SkipList<K>::remove key not found key: " + std::to_string(key);
 		m_logger.log(utils::Logger::LogLevel::Debug, message);
 
 		traverseContext->unlockAll();
+		m_sequenceLock.fetch_add(1, std::memory_order_release);
+
 		delete traverseContext;
 		return false;
 	}
@@ -287,6 +318,8 @@ bool SkipList<K>::remove(const K key, Transaction* transaction) {
 	}
 
 	traverseContext->unlockAll();
+	m_sequenceLock.fetch_add(1, std::memory_order_release);
+
 	delete traverseContext;
 
 	m_size.fetch_sub(1, std::memory_order_relaxed);
@@ -302,8 +335,24 @@ bool SkipList<K>::update(const K key, std::byte* data, const std::uint16_t size,
 	std::string message = "SkipList<K>::update key: " + std::to_string(key);
 	m_logger.log(utils::Logger::LogLevel::Trace, message);
 
-	SkipListNode<K>* foundNode = findNode(key);
-	foundNode->writeLock();
+	RETRY:
+		std::size_t sequenceLock = m_sequenceLock.load(std::memory_order_acquire);
+		if (sequenceLock % 2 != 0) {
+			goto RETRY;
+		}
+
+		SkipListNode<K>* foundNode = findNode(key);
+
+		if (foundNode != nullptr) {
+			foundNode->writeLock();
+		}
+
+		if (m_sequenceLock.compare_exchange_weak(sequenceLock, sequenceLock + 1, std::memory_order_release, std::memory_order_relaxed) == false) {
+			if (foundNode != nullptr) {
+				foundNode->writeUnlock();
+			}
+			goto RETRY;
+		}
 
 	if (foundNode != nullptr) {
 		if (transaction != nullptr) {
@@ -329,8 +378,12 @@ bool SkipList<K>::update(const K key, std::byte* data, const std::uint16_t size,
 		}
 
 		foundNode->writeUnlock();
+		m_sequenceLock.fetch_add(1, std::memory_order_release);
+
 		return true;
 	}
+
+	m_sequenceLock.fetch_add(1, std::memory_order_release);
 
 	message = "SkipList<K>::update key not found key: " + std::to_string(key);
 	m_logger.log(utils::Logger::LogLevel::Debug, message);
@@ -349,11 +402,31 @@ std::byte* SkipList<K>::find(const K key) const {
 	std::string message = "SkipList<K>::find key: " + std::to_string(key);
 	m_logger.log(utils::Logger::LogLevel::Trace, message);
 
-	SkipListNode<K>* foundNode = findNode(key);
+	RETRY:
+		std::size_t sequenceLock = m_sequenceLock.load(std::memory_order_acquire);
+		if (sequenceLock % 2 != 0) {
+			goto RETRY;
+		}
+
+		SkipListNode<K>* foundNode = findNode(key);
+
+		if (foundNode != nullptr) {
+			foundNode->readLock();
+		}
+
+		if (sequenceLock != m_sequenceLock.load(std::memory_order_acquire)) {
+			if (foundNode != nullptr) {
+				foundNode->readUnlock();
+			}
+			goto RETRY;
+		}
 
 	if (foundNode != nullptr) {
 		// TODO isolate
 		std::byte* data = foundNode->getRowInfo()->getData();
+	
+		foundNode->readUnlock();
+
 		return data;
 	}
 
@@ -369,7 +442,18 @@ bool SkipList<K>::contains(const K key) const {
 	std::string message = "SkipList<K>::contains key: " + std::to_string(key);
 	m_logger.log(utils::Logger::LogLevel::Trace, message);
 
-	SkipListNode<K>* foundNode = findNode(key);
+	RETRY:
+		std::size_t sequenceLock = m_sequenceLock.load(std::memory_order_acquire);
+		if (sequenceLock % 2 != 0) {
+			goto RETRY;
+		}
+
+		// TODO isolate
+		SkipListNode<K>* foundNode = findNode(key);
+
+		if (sequenceLock != m_sequenceLock.load(std::memory_order_acquire)) {
+			goto RETRY;
+		}
 	
 	return (foundNode != nullptr); 
 }

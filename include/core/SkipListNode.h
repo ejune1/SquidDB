@@ -43,6 +43,7 @@ class SkipListNode {
 		SkipListNode<K>** m_next;
 		size_t* m_width;
 
+		// TODO performance - this is too heavy
 		std::shared_mutex m_mutex;
 };
 

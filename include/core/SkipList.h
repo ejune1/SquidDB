@@ -104,7 +104,9 @@ class SkipList : public engine::Index {
 		SkipListNode<K>* m_head;
 
 		std::atomic<bool> m_initialized;
-		std::atomic<size_t> m_size;
+		std::atomic<std::size_t> m_size;
+
+		std::atomic<std::size_t> m_sequenceLock;
 };
 
 }} // namespace
