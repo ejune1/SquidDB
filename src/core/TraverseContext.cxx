@@ -9,7 +9,7 @@
 namespace squiddb { namespace core {
 
 template<typename K>
-TraverseContext<K>::TraverseContext(const std::uint8_t size) : m_size(size) {
+TraverseContext<K>::TraverseContext(const std::uint8_t size, const LockType lockType) : m_size(size), m_lockType(lockType) {
 	m_prevNode = new SkipListNode<K>*[m_size];
 	for (std::uint8_t x = 0; x < m_size; x++) {
 		m_prevNode[x] = nullptr;
@@ -47,6 +47,18 @@ template<typename K>
 void TraverseContext<K>::setPrevNode(const std::uint8_t index, SkipListNode<K>* prevNode) {
 	assert(index < m_size);
 	m_prevNode[index] = prevNode;
+
+	if (m_lockType != LockType::None) {
+		if (m_lockNodes.count(prevNode) == 0) {
+			if (m_lockType == LockType::Read) {
+				prevNode->readLock();
+			} else if (m_lockType == LockType::Write) {
+				prevNode->writeLock();
+			}
+
+			m_lockNodes.insert(prevNode);
+		}
+	}
 }
 
 template<typename K>
@@ -69,6 +81,19 @@ size_t TraverseContext<K>::getRank() const {
 template<typename K>
 void TraverseContext<K>::setRank(const size_t rank) {
 	m_rank = rank;
+}
+
+template<typename K>
+void TraverseContext<K>::unlockAll() {
+	if (m_lockType != LockType::None) {
+		for (SkipListNode<K>* node : m_lockNodes) {
+			if (m_lockType == LockType::Read) {
+				node->readUnlock();
+			} else if (m_lockType == LockType::Write) {
+				node->writeUnlock();
+			}
+		}
+	}
 }
 
 // explicit instantiation - we know what kinds of keys we will get

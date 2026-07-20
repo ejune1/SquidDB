@@ -1,5 +1,6 @@
 #include "core/SkipList.h"
 
+#include "core/LockType.h"
 #include "core/RowInfo.h"
 #include "core/SkipListIterator.h"
 #include "core/SkipListNode.h"
@@ -93,12 +94,13 @@ bool SkipList<K>::insert(const K key, std::byte* data, const std::uint16_t size,
 	m_logger.log(utils::Logger::LogLevel::Trace, message);
 
 	bool duplicateKey = false;
-	TraverseContext<K>* traverseContext = traversePrevNodes(key, duplicateKey, transaction);
+	TraverseContext<K>* traverseContext = traversePrevNodes(key, duplicateKey, transaction, LockType::Write);
 
 	if ((m_primaryIndex == true) && (duplicateKey == true)) {
 		std::string message = "SkipList<K>::insert duplicate key (primary) key: " + std::to_string(key);
 		m_logger.log(utils::Logger::LogLevel::Debug, message);
 
+		traverseContext->unlockAll();
 		delete traverseContext;
 		return false;
 	}
@@ -110,8 +112,9 @@ bool SkipList<K>::insert(const K key, std::byte* data, const std::uint16_t size,
 	// key exists but has been deleted - tack on new info
 	if ((nextLevel0 != nullptr) && (key == nextLevel0->getKey())) {
 		assert(transaction != nullptr);
-
 		insertNode = nextLevel0;
+		insertNode->writeLock();
+
 		rowInfo = transaction->isolateRowInfo(insertNode->getRowInfo());
 		assert((rowInfo != nullptr) && (rowInfo->getDeleting() == true));
 
@@ -131,6 +134,8 @@ bool SkipList<K>::insert(const K key, std::byte* data, const std::uint16_t size,
 		}
 
 		insertNode = new SkipListNode<K>(key, nodeHeight);
+		insertNode->writeLock();
+
 		rowInfo = new RowInfo(RowInfo::Status::Committed, data, size);
 
 		if (transaction != nullptr) {
@@ -172,6 +177,9 @@ bool SkipList<K>::insert(const K key, std::byte* data, const std::uint16_t size,
 		}
 	}
 
+	insertNode->writeUnlock();
+	traverseContext->unlockAll();
+
 	delete traverseContext;
 
 	if (transaction != nullptr) {
@@ -194,18 +202,20 @@ bool SkipList<K>::remove(const K key, Transaction* transaction) {
 	m_logger.log(utils::Logger::LogLevel::Trace, message);
 
 	bool duplicateKey = false;
-	TraverseContext<K>* traverseContext = traversePrevNodes(key, duplicateKey, transaction);
+	TraverseContext<K>* traverseContext = traversePrevNodes(key, duplicateKey, transaction, LockType::Write);
 
 	if (duplicateKey == false) {
 		message = "SkipList<K>::remove key not found key: " + std::to_string(key);
 		m_logger.log(utils::Logger::LogLevel::Debug, message);
 
+		traverseContext->unlockAll();
 		delete traverseContext;
 		return false;
 	}
 
 	if (transaction != nullptr) {
 		SkipListNode<K>* nextLevel0 = traverseContext->getPrevNode(0 /* level */)->getNext(0 /* level */);
+		nextLevel0->writeLock();
 
 		assert(nextLevel0 != nullptr);
 		assert(key == nextLevel0->getKey());
@@ -222,6 +232,7 @@ bool SkipList<K>::remove(const K key, Transaction* transaction) {
 		rowInfo->setNext(newRowInfo);
 
 		transaction->addAffectedRow(reinterpret_cast<const std::byte*>(nextLevel0->getKeyRef()), sizeof(K), newRowInfo);
+		nextLevel0->writeUnlock();
 
 	} else {
 		SkipListNode<K>* removeNode = nullptr;
@@ -238,18 +249,22 @@ bool SkipList<K>::remove(const K key, Transaction* transaction) {
 				assert((removeNode == nullptr) || (removeNode == next));
 
 				removeNode = next;
+				removeNode->writeLock();
+
 				size_t prevWidth = (prev->getWidth(level) + removeNode->getWidth(level)) - 1;
 
 				prev->setNext(level, next->getNext(level));
 				prev->setWidth(level, prevWidth);
 
 				next->setNext(level, nullptr);
+				removeNode->writeUnlock();
 			} else {
 				//decrement width for all levels above remove node's height
 				prev->setWidth(level, prev->getWidth(level) - 1);
 			}
 		}
 		assert(removeNode != nullptr);
+		removeNode->writeLock();
 
 		RowInfo* rowInfo = removeNode->getRowInfo();
 		removeNode->setRowInfo(nullptr);
@@ -267,9 +282,11 @@ bool SkipList<K>::remove(const K key, Transaction* transaction) {
 			delete rowInfoToDelete;
 		}
 
+		removeNode->writeUnlock();
 		delete removeNode;
 	}
 
+	traverseContext->unlockAll();
 	delete traverseContext;
 
 	m_size.fetch_sub(1, std::memory_order_relaxed);
@@ -286,6 +303,7 @@ bool SkipList<K>::update(const K key, std::byte* data, const std::uint16_t size,
 	m_logger.log(utils::Logger::LogLevel::Trace, message);
 
 	SkipListNode<K>* foundNode = findNode(key);
+	foundNode->writeLock();
 
 	if (foundNode != nullptr) {
 		if (transaction != nullptr) {
@@ -310,6 +328,7 @@ bool SkipList<K>::update(const K key, std::byte* data, const std::uint16_t size,
 			}
 		}
 
+		foundNode->writeUnlock();
 		return true;
 	}
 
@@ -452,6 +471,7 @@ size_t SkipList<K>::estimateRangeCardinality(const K lowKey, const K highKey) co
 		return 0;
 	}
 
+	// TODO transactions
 	bool duplicateKey = false;
 	TraverseContext<K>* traverseContextLow = traversePrevNodes(lowKey, duplicateKey);
 	TraverseContext<K>* traverseContextHigh = traversePrevNodes(highKey, duplicateKey);
@@ -570,12 +590,12 @@ SkipListNode<K>* SkipList<K>::findNode(const K key) const {
 }
 
 template<typename K>
-TraverseContext<K>* SkipList<K>::traversePrevNodes(const K key, bool& duplicateKey, Transaction* transaction) const {
+TraverseContext<K>* SkipList<K>::traversePrevNodes(const K key, bool& duplicateKey, Transaction* transaction, LockType lockType) const {
 	if (m_initialized == false) {
 		throw std::runtime_error("SkipList<K>::traversePrevNodes not initialized");
 	}
 
-	TraverseContext<K>* traverseContext = new TraverseContext<K>(m_maxNodeHeight);
+	TraverseContext<K>* traverseContext = new TraverseContext<K>(m_maxNodeHeight, lockType);
 
 	SkipListNode<K>* trail = m_head;
 	SkipListNode<K>* node = m_head;
