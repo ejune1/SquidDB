@@ -22,6 +22,7 @@ class SkipListIterator : public engine::TableIterator {
 
 		SkipListIterator();
 		SkipListIterator(SkipListNode<K>* startNode, std::optional<int> endKey, Transaction* transaction = nullptr);
+		~SkipListIterator();
 
 		reference operator*() const;
 		SkipListIterator<K>& operator++();
@@ -41,7 +42,7 @@ class SkipListIterator : public engine::TableIterator {
 		const SkipListNode<K>* m_current;
 		std::optional<K> m_endKey;
 
-		void transactionalAdvance();
+		void advance(bool next);
 		Transaction* m_transaction;
 };
 

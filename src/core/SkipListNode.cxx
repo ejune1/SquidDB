@@ -85,22 +85,22 @@ std::uint8_t SkipListNode<K>::getHeight() const {
 }
 
 template<typename K>
-void SkipListNode<K>::writeLock() {
+void SkipListNode<K>::writeLock() const {
 	m_mutex.lock();	
 }
 
 template<typename K>
-void SkipListNode<K>::writeUnlock() {
+void SkipListNode<K>::writeUnlock() const {
 	m_mutex.unlock();
 }
 
 template<typename K>
-void SkipListNode<K>::readLock() {
+void SkipListNode<K>::readLock() const {
 	m_mutex.lock_shared();
 }
 
 template<typename K>
-void SkipListNode<K>::readUnlock() {
+void SkipListNode<K>::readUnlock() const {
 	m_mutex.unlock_shared();
 }
 

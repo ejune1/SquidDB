@@ -30,10 +30,10 @@ class SkipListNode {
 
 		std::uint8_t getHeight() const;
 
-		void writeLock();
-		void writeUnlock();
-		void readLock();
-		void readUnlock();
+		void writeLock() const;
+		void writeUnlock() const;
+		void readLock() const;
+		void readUnlock() const;
 
 	private:
 		const K m_key;
@@ -44,7 +44,7 @@ class SkipListNode {
 		size_t* m_width;
 
 		// TODO performance - this is too heavy
-		std::shared_mutex m_mutex;
+		mutable std::shared_mutex m_mutex;
 };
 
 }} // namespace

@@ -22,10 +22,16 @@ SkipListIterator<K>::SkipListIterator(SkipListNode<K>* startNode, std::optional<
 	m_endKey = endKey;
 	m_transaction = transaction;
 
-	transactionalAdvance();
+	if (m_current != nullptr) {
+		m_current->readLock();
+	}
+	advance(false /* next */);
+}
 
-	if ((m_endKey.has_value() == true) && (m_current != nullptr) && (m_current->getKey() > m_endKey)) {
-		m_current = nullptr;
+template<typename K>
+SkipListIterator<K>::~SkipListIterator() {
+	if (m_current != nullptr) {
+		m_current->readUnlock();
 	}
 }
 
@@ -36,15 +42,7 @@ typename SkipListIterator<K>::reference SkipListIterator<K>::operator*() const {
 
 template<typename K>
 SkipListIterator<K>& SkipListIterator<K>::operator++() {
-	if (m_current != nullptr) {
-		m_current = m_current->getNext(0 /* level */);
-		transactionalAdvance();
-
-		if ((m_endKey.has_value() == true) && (m_current != nullptr) && (m_current->getKey() > m_endKey)) {
-			m_current = nullptr;
-		}
-	}
-
+	advance(true /* next */);
 	return *this;
 }
 
@@ -52,6 +50,10 @@ template<typename K>
 SkipListIterator<K> SkipListIterator<K>::operator++(int) {
 	SkipListIterator<K> tmp = *this;
 	++(*this);
+
+	if (tmp.m_current != nullptr) {
+		tmp.m_current->readLock();
+	}
 	return tmp;
 }
 
@@ -72,47 +74,68 @@ bool SkipListIterator<K>::valid() const {
 
 template<typename K>
 void SkipListIterator<K>::next() {
-	m_current = m_current->getNext(0 /* level */);
-	transactionalAdvance();
-
-	if ((m_endKey.has_value() == true) && (m_current != nullptr) && (m_current->getKey() > m_endKey)) {
-		m_current = nullptr;
-	}
+	advance(true /* next */);
 }
 
 template<typename K>
 const void* SkipListIterator<K>::getKey() const {
 	// TODO fix this in opaque keys and return the internal data
-	return static_cast<const void*>(m_current->getKeyRef());
+	if (m_current != nullptr) {
+		return static_cast<const void*>(m_current->getKeyRef());
+	}
+
+	return nullptr;
 }
 
 template<typename K>
 const void* SkipListIterator<K>::getData() const {
-	RowInfo* rowInfo = m_current->getRowInfo();
+	if (m_current != nullptr) {
+		RowInfo* rowInfo = m_current->getRowInfo();
 
-	if (m_transaction != nullptr) {
-		rowInfo = m_transaction->isolateRowInfo(rowInfo);
+		if (m_transaction != nullptr) {
+			rowInfo = m_transaction->isolateRowInfo(rowInfo);
+		}
+
+		return rowInfo->getData();
 	}
 
-	return rowInfo->getData();
+	return nullptr;
 }
 
 template<typename K>
-void SkipListIterator<K>::transactionalAdvance() {
-	if ((m_transaction != nullptr) && (m_current != nullptr)) {
+void SkipListIterator<K>::advance(bool next) {
+	if ((m_current != nullptr) && (next == true)) {
+		const SkipListNode<K>* last = m_current;
+		m_current = m_current->getNext(0 /* level */);
+
+		last->readUnlock();
+		if (m_current != nullptr) {
+			m_current->readLock();
+		}
+	}
+
+	if ((m_current != nullptr) && (m_transaction != nullptr)) {
 		RowInfo* rowInfo = m_current->getRowInfo();
 		rowInfo = m_transaction->isolateRowInfo(rowInfo);
 
 		while ((rowInfo == nullptr) || (rowInfo->getDeleting() == true)) {
+			const SkipListNode<K>* last = m_current;
 			m_current = m_current->getNext(0 /* level */);
 
+			last->readUnlock();
 			if (m_current == nullptr) {
 				return;
 			}
+			m_current->readLock();
 
 			rowInfo = m_current->getRowInfo();
 			rowInfo = m_transaction->isolateRowInfo(rowInfo);
 		}
+	}
+
+	if ((m_current != nullptr) && (m_endKey.has_value() == true) && (m_current->getKey() > m_endKey)) {
+		m_current->readUnlock();
+		m_current = nullptr;
 	}
 }
 
