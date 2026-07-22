@@ -210,7 +210,7 @@ bool SkipList<K>::insert(const K key, std::byte* data, const std::uint16_t size,
 }
 
 template<typename K>
-bool SkipList<K>::remove(const K key, Transaction* transaction) {
+bool SkipList<K>::remove(const K key, Transaction* transaction, bool background) {
 	// TODO transaction needs background delete
 	if (m_initialized == false) {
 		throw std::runtime_error("SkipList<K>::remove not initialized");
@@ -246,7 +246,11 @@ bool SkipList<K>::remove(const K key, Transaction* transaction) {
 	}
 
 	// TODO next (the remove node) needs to be locked during the traverse (before the retry)
-	if (transaction != nullptr) {
+	if (background == true) {
+		if (transaction == nullptr) {
+			throw std::runtime_error("SkipList<K>::remove background true but transaction is nullptr");
+		}
+
 		SkipListNode<K>* nextLevel0 = traverseContext->getPrevNode(0 /* level */)->getNext(0 /* level */);
 		nextLevel0->writeLock();
 
@@ -622,7 +626,7 @@ template<typename K>
 bool SkipList<K>::deleteRow(const void* key, Transaction* transaction) {
 	const K deleteKey = *static_cast<const K*>(key);
 
-	return remove(deleteKey, transaction);
+	return remove(deleteKey, transaction, true /* background */);
 }
 
 template<typename K>

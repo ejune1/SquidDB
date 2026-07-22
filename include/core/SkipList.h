@@ -37,7 +37,7 @@ class SkipList : public engine::Index {
 			Transaction* transaction = nullptr
 		);
 
-		bool remove(const K key, Transaction* transaction = nullptr);
+		bool remove(const K key, Transaction* transaction = nullptr, bool background = false);
 		bool update(const K key, std::byte* data, const std::uint16_t size, Transaction* transaction = nullptr);
 
 		// point lookup and verification
