@@ -14,7 +14,10 @@
 #include <cstddef>
 #include <cstdint>
 #include <optional>
+#include <mutex>
 #include <random>
+#include <set>
+#include <thread>
 
 namespace squiddb { namespace core {
 
@@ -99,12 +102,20 @@ class SkipList : public engine::Index {
 			LockType lockType = LockType::None
 		) const;
 
+		void purgeThread();
+
 		utils::Logger& m_logger;
 
 		const bool m_primaryIndex;
 		const std::uint8_t m_maxNodeHeight;
 
 		SkipListNode<K>* m_head;
+
+		std::thread m_purgeThread;
+		std::atomic<bool> m_stop;
+
+		std::set<SkipListNode<K>*> m_purgeSet;
+		std::mutex m_purgeSetMutex;
 
 		std::atomic<bool> m_initialized;
 		std::atomic<std::size_t> m_size;

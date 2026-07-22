@@ -11,12 +11,16 @@
 
 #include <atomic>
 #include <cassert>
+#include <chrono>
 #include <cstddef>
 #include <cstdint>
 #include <cstdlib>
 #include <optional>
+#include <mutex>
 #include <stdexcept>
+#include <set>
 #include <string>
+#include <thread>
 
 namespace squiddb { namespace core {
 
@@ -24,6 +28,7 @@ template<typename K>
 SkipList<K>::SkipList(utils::Logger& logger, const bool primaryIndex, const std::uint8_t maxNodeHeight)
 	: m_logger(logger), m_primaryIndex(primaryIndex), m_maxNodeHeight(maxNodeHeight) {
 	m_head = nullptr;
+	m_stop = false;
 	m_initialized = false;
 	m_size = 0;
 	m_sequenceLock = 0;
@@ -31,6 +36,11 @@ SkipList<K>::SkipList(utils::Logger& logger, const bool primaryIndex, const std:
 
 template<typename K>
 SkipList<K>::~SkipList() {
+	m_stop = true;
+	if (m_purgeThread.joinable() == true) {
+		m_purgeThread.join();
+	}
+
 	// SKipList owns all nodes, keys, row infos, values
 	SkipListNode<K>* node = m_head;
 
@@ -58,6 +68,8 @@ SkipList<K>::~SkipList() {
 		delete nodeToDelete;	
 	}
 
+	m_purgeSet.clear();
+
 	m_head = nullptr;
 	m_initialized = false;
 }
@@ -77,6 +89,8 @@ void SkipList<K>::initialize() {
 
 	// head is dummy object
 	m_head = new SkipListNode<K>(K{}, m_maxNodeHeight);
+
+	m_purgeThread = std::thread(&SkipList<K>::purgeThread, this);
 
 	m_initialized = true;
 }
@@ -143,6 +157,12 @@ bool SkipList<K>::insert(const K key, std::byte* data, const std::uint16_t size,
 
 		rowInfo = newRowInfo;
 
+		insertNode->writeUnlock();
+
+		m_purgeSetMutex.lock();
+		m_purgeSet.insert(insertNode);
+		m_purgeSetMutex.unlock();
+
 	} else {
 		if (nodeHeight == 0) {
 			nodeHeight = SkipList<K>::generateNodeHeight(m_maxNodeHeight);
@@ -191,9 +211,10 @@ bool SkipList<K>::insert(const K key, std::byte* data, const std::uint16_t size,
 			insertNode->setNext(level, next);
 			insertNode->setWidth(level, insertWidth);
 		}
+
+		insertNode->writeUnlock();
 	}
 
-	insertNode->writeUnlock();
 	traverseContext->unlockAll();
 
 	m_sequenceLock.fetch_add(1, std::memory_order_release);
@@ -268,8 +289,13 @@ bool SkipList<K>::remove(const K key, Transaction* transaction, bool background)
 		newRowInfo->setNext(rowInfo->getNext());
 		rowInfo->setNext(newRowInfo);
 
-		transaction->addAffectedRow(reinterpret_cast<const std::byte*>(nextLevel0->getKeyRef()), sizeof(K), newRowInfo);
 		nextLevel0->writeUnlock();
+
+		m_purgeSetMutex.lock();
+		m_purgeSet.insert(nextLevel0);
+		m_purgeSetMutex.unlock();
+
+		transaction->addAffectedRow(reinterpret_cast<const std::byte*>(nextLevel0->getKeyRef()), sizeof(K), newRowInfo);
 
 	} else {
 		SkipListNode<K>* removeNode = nullptr;
@@ -288,6 +314,8 @@ bool SkipList<K>::remove(const K key, Transaction* transaction, bool background)
 			if ((next != nullptr) && (key == next->getKey())) {
 				assert((removeNode == nullptr) || (removeNode == next));
 				removeNode = next;
+				// TODO track whether we are coming from purge thread
+				removeNode->getRowInfo()->setDeleting(true);
 
 				size_t prevWidth = (prev->getWidth(level) + removeNode->getWidth(level)) - 1;
 
@@ -309,23 +337,34 @@ bool SkipList<K>::remove(const K key, Transaction* transaction, bool background)
 		removeNode->writeLock();
 
 		RowInfo* rowInfo = removeNode->getRowInfo();
-		removeNode->setRowInfo(nullptr);
-
-		while (rowInfo != nullptr) {
-			RowInfo* rowInfoToDelete = rowInfo;
+	
+		// from purge thread - make sure nothing has been added since we decided to remove
+		while (rowInfo->getNext() != nullptr) {
 			rowInfo = rowInfo->getNext();
-
-			std::byte* dataToDelete = rowInfoToDelete->getData();
-			rowInfoToDelete->setData(nullptr, 0 /* size */);
-
-			if (dataToDelete != nullptr) {
-				std::free(dataToDelete);
-			}
-			delete rowInfoToDelete;
 		}
 
-		removeNode->writeUnlock();
-		delete removeNode;
+		if ((rowInfo->getStatus() == RowInfo::Status::Committed) && (rowInfo->getDeleting() == true)) {
+			RowInfo* rowInfo = removeNode->getRowInfo();
+			removeNode->setRowInfo(nullptr);
+
+			while (rowInfo != nullptr) {
+				RowInfo* rowInfoToDelete = rowInfo;
+				rowInfo = rowInfo->getNext();
+
+				std::byte* dataToDelete = rowInfoToDelete->getData();
+				rowInfoToDelete->setData(nullptr, 0 /* size */);
+
+				if (dataToDelete != nullptr) {
+					std::free(dataToDelete);
+				}
+				delete rowInfoToDelete;
+			}
+
+			removeNode->writeUnlock();
+			delete removeNode;
+		} else {
+			throw std::runtime_error("SkipList<K>::remove found remove list with non deleting or uncommitted info");
+		}
 	}
 
 	traverseContext->unlockAll();
@@ -377,6 +416,12 @@ bool SkipList<K>::update(const K key, std::byte* data, const std::uint16_t size,
 			newRowInfo->setNext(rowInfo->getNext());
 			rowInfo->setNext(newRowInfo);
 			
+			foundNode->writeUnlock();
+
+			m_purgeSetMutex.lock();
+			m_purgeSet.insert(foundNode);
+			m_purgeSetMutex.unlock();
+
 			transaction->addAffectedRow(reinterpret_cast<const std::byte*>(foundNode->getKeyRef()), sizeof(K), newRowInfo);
 
 		} else {
@@ -386,9 +431,10 @@ bool SkipList<K>::update(const K key, std::byte* data, const std::uint16_t size,
 			if (dataToDelete != nullptr) {
 				std::free(dataToDelete);
 			}
+
+			foundNode->writeUnlock();
 		}
 
-		foundNode->writeUnlock();
 		m_sequenceLock.fetch_add(1, std::memory_order_release);
 
 		return true;
@@ -826,6 +872,88 @@ TraverseContext<K>* SkipList<K>::traversePrevNodes(const K key, bool& duplicateK
 
 	traverseContext->setRank(accumulatedRank);
 	return traverseContext;
+}
+
+template<typename K>
+void SkipList<K>::purgeThread() {
+	while (m_stop.load(std::memory_order_relaxed) == false) {
+		std::size_t purgeCount = 0;			
+		std::size_t cleanCount = 0;			
+
+		m_purgeSetMutex.lock();
+		std::size_t size = m_purgeSet.size();
+		m_purgeSetMutex.unlock();
+
+		while (size-- > 0) {
+			m_purgeSetMutex.lock();
+
+			SkipListNode<K>* node = *(m_purgeSet.begin());
+			m_purgeSet.erase(node);
+
+			m_purgeSetMutex.unlock();
+
+			node->writeLock();
+			
+			RowInfo* rowInfo = node->getRowInfo();
+			while (rowInfo != nullptr) {
+				if ((rowInfo->getStatus() != RowInfo::Status::Committed) && (rowInfo->getStatus() != RowInfo::Status::Aborted)) {
+					rowInfo = nullptr;
+					break;
+				}
+				RowInfo* next = rowInfo->getNext();
+
+				if ((next != nullptr) && ((next->getStatus() == RowInfo::Status::Committed) 
+					|| (next->getStatus() == RowInfo::Status::Aborted))) {
+					rowInfo = next;
+					continue;
+				} else {
+					break;
+				}	
+			}
+
+			if (rowInfo != nullptr) {
+				if ((rowInfo->getStatus() == RowInfo::Status::Committed) && (rowInfo->getDeleting() == true)) {
+					if (rowInfo->getNext() == nullptr) {
+						K key = node->getKey();
+
+						node->writeUnlock();
+						remove(key, nullptr /* transaction */, false /* background */);
+						purgeCount++;
+					}
+
+				} else {
+					RowInfo* prev = node->getRowInfo();
+					node->setRowInfo(rowInfo);
+
+					while (prev != rowInfo) {
+						RowInfo* rowInfoToDelete = prev;
+						prev = prev->getNext();
+
+						std::byte* dataToDelete = rowInfoToDelete->getData();
+						rowInfoToDelete->setData(nullptr, 0 /* size */);
+
+						if (dataToDelete != nullptr) {
+							std::free(dataToDelete);
+						}
+						delete rowInfoToDelete;
+					}
+
+					cleanCount++;
+					node->writeUnlock();
+				}
+			}
+			
+			m_purgeSetMutex.lock();
+			size = m_purgeSet.size();
+			m_purgeSetMutex.unlock();
+		}
+
+		std::string message = "SkipList<K>::purgeThread purged " + std::to_string(purgeCount) + " cleaned " + std::to_string(cleanCount);
+		m_logger.log(utils::Logger::LogLevel::Info, message);
+
+		// TODO make this sleep time config or make it get signaled
+		std::this_thread::sleep_for(std::chrono::milliseconds(100));
+	}
 }
 
 template<typename K>
