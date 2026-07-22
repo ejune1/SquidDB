@@ -5,11 +5,15 @@
 #include "core/SkipListNode.h"
 #include "core/Transaction.h"
 
+#include <cstdint>
 #include <cstddef>
 #include <iterator>
 #include <optional>
 
 namespace squiddb { namespace core {
+
+template<typename K>
+class SkipList;
 
 template<typename K>
 class SkipListIterator : public engine::TableIterator {
@@ -21,7 +25,13 @@ class SkipListIterator : public engine::TableIterator {
 		using reference         = K;
 
 		SkipListIterator();
-		SkipListIterator(SkipListNode<K>* startNode, std::optional<int> endKey, Transaction* transaction = nullptr);
+		SkipListIterator(
+			const SkipList<K>* skipList,
+			const SkipListNode<K>* startNode, 
+			std::optional<int> endKey, 
+			Transaction* transaction, 
+			std::size_t sequence
+		);
 		~SkipListIterator();
 
 		reference operator*() const;
@@ -39,11 +49,14 @@ class SkipListIterator : public engine::TableIterator {
 		const void* getData() const override;
 
 	private:
+		const SkipList<K>* m_skipList;
 		const SkipListNode<K>* m_current;
 		std::optional<K> m_endKey;
 
 		void advance(bool next);
 		Transaction* m_transaction;
+
+		std::size_t m_sequence;
 };
 
 }} // namespace

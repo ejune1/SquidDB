@@ -1,8 +1,10 @@
 #include "core/SkipListIterator.h"
 
+#include "core/SkipList.h"
 #include "core/SkipListNode.h"
 #include "core/Transaction.h"
 
+#include <atomic>
 #include <cstdint>
 #include <iterator>
 #include <optional>
@@ -11,16 +13,26 @@ namespace squiddb { namespace core {
 
 template<typename K>
 SkipListIterator<K>::SkipListIterator() {
+	m_skipList = nullptr;
 	m_current = nullptr;
 	m_endKey = std::nullopt;
 	m_transaction = nullptr;
+	m_sequence = 0;
 }
 
 template<typename K>
-SkipListIterator<K>::SkipListIterator(SkipListNode<K>* startNode, std::optional<int> endKey, Transaction* transaction) {
+SkipListIterator<K>::SkipListIterator(
+	const SkipList<K>* skipList,
+	const SkipListNode<K>* startNode, 
+	std::optional<int> endKey, 
+	Transaction* transaction, 
+	std::size_t sequence
+	) {
+	m_skipList = skipList;
 	m_current = startNode;
 	m_endKey = endKey;
 	m_transaction = transaction;
+	m_sequence = sequence;
 
 	if (m_current != nullptr) {
 		m_current->readLock();
@@ -104,6 +116,7 @@ const void* SkipListIterator<K>::getData() const {
 
 template<typename K>
 void SkipListIterator<K>::advance(bool next) {
+	RETRY:
 	if ((m_current != nullptr) && (next == true)) {
 		const SkipListNode<K>* last = m_current;
 		m_current = m_current->getNext(0 /* level */);
@@ -136,6 +149,19 @@ void SkipListIterator<K>::advance(bool next) {
 	if ((m_current != nullptr) && (m_endKey.has_value() == true) && (m_current->getKey() > m_endKey)) {
 		m_current->readUnlock();
 		m_current = nullptr;
+	}
+
+	if (m_current != nullptr) {
+		std::size_t currentSequence = m_skipList->m_sequenceLock.load(std::memory_order_acquire);
+		if (m_sequence < currentSequence) {
+			m_current->readUnlock();
+
+			m_current = m_skipList->lowerBound(m_current->getKey());
+			m_current->readLock();
+			m_sequence = currentSequence;
+
+			goto RETRY;
+		}
 	}
 }
 

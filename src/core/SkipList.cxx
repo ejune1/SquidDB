@@ -471,11 +471,13 @@ SkipListIterator<K> SkipList<K>::begin(Transaction* transaction) const {
 		throw std::runtime_error("SkipList<K>::begin not initialized");
 	}
 
+	std::size_t sequence = m_sequenceLock.load(std::memory_order_acquire);
+
 	m_head->readLock();
 	SkipListNode<K>* next = m_head->getNext(0 /* level */);
 	m_head->readUnlock();
 
-	return SkipListIterator<K>(next, std::nullopt, transaction);
+	return SkipListIterator<K>(this, next, std::nullopt, transaction, sequence);
 }
 
 template<typename K>
@@ -484,53 +486,11 @@ SkipListIterator<K> SkipList<K>::seek(const K key, const std::optional<K> endKey
 		throw std::runtime_error("SkipList<K>::seek not initialized");
 	}
 
-	SkipListNode<K>* trail = m_head;
-	trail->readLock();
+	std::size_t sequence = m_sequenceLock.load(std::memory_order_acquire);
 
-	SkipListNode<K>* node = m_head;
-	SkipListNode<K>* lowerBound = nullptr;
+	SkipListNode<K>* node = lowerBound(key);
 
-	std::uint8_t level = m_maxNodeHeight;
-	while (level-- > 0) {
-		node = node->getNext(level);
-		if (node != nullptr) {
-			node->readLock();
-		}
-
-		while ((node != nullptr) && (key > node->getKey())) {
-			trail->readUnlock();
-			trail = node;
-
-			node = node->getNext(level);
-			if (node != nullptr) {
-				node->readLock();
-			}
-		}
-		assert(trail != nullptr);
-
-		if ((node != nullptr) && (key == node->getKey())) {
-			lowerBound = node;
-			break;
-		}
-		assert((node == nullptr) || (key < node->getKey()));
-
-		if (level == 0) {
-			lowerBound = node;
-			break;
-		}
-
-		if (node != nullptr) {
-			node->readUnlock();
-		}
-		node = trail;
-	}
-
-	trail->readUnlock();
-	if (node != nullptr) {
-		node->readUnlock();
-	}
-
-	return SkipListIterator<K>(lowerBound, endKey, transaction);
+	return SkipListIterator<K>(this, node, endKey, transaction, sequence);
 }
 
 template<typename K>
@@ -539,7 +499,7 @@ SkipListIterator<K> SkipList<K>::end() const {
 		throw std::runtime_error("SkipList<K>::end not initialized");
 	}
 
-	return SkipListIterator<K>(nullptr, std::nullopt);
+	return SkipListIterator<K>(nullptr, nullptr, std::nullopt, nullptr /* transaction */, 0 /* sequence */);
 }
 
 template<typename K>
@@ -675,11 +635,13 @@ bool SkipList<K>::updateRow(const void* key, void* row, const std::uint16_t size
 
 template<typename K>
 engine::TableIterator* SkipList<K>::scan(Transaction* transaction) const {
+	std::size_t sequence = m_sequenceLock.load(std::memory_order_acquire);
+
 	m_head->readLock();
 	SkipListNode<K>* next = m_head->getNext(0 /* level */);
 	m_head->readUnlock();
 
-	SkipListIterator<K>* tableIterator = new SkipListIterator<K>(next, std::nullopt, transaction);
+	SkipListIterator<K>* tableIterator = new SkipListIterator<K>(this, next, std::nullopt, transaction, sequence);
 	return tableIterator;
 }
 
@@ -688,8 +650,64 @@ engine::TableIterator* SkipList<K>::rangeScan(const void* startKey, const void* 
 	const K rangeStartKey = *static_cast<const K*>(startKey);
 	const K rangeEndKey = *static_cast<const K*>(endKey);
 	
-	SkipListIterator<K>* tableIterator = new SkipListIterator<K>(seek(rangeStartKey, rangeEndKey, transaction));
+	SkipListIterator<K> skipListIterator = seek(rangeStartKey, rangeEndKey, transaction);
+	SkipListIterator<K>* tableIterator = new SkipListIterator<K>(skipListIterator);
 	return tableIterator;
+}
+
+template<typename K>
+SkipListNode<K>* SkipList<K>::lowerBound(const K key) const {
+	if (m_initialized == false) {
+		throw std::runtime_error("SkipList<K>::lowerBound not initialized");
+	}
+
+	SkipListNode<K>* trail = m_head;
+	trail->readLock();
+
+	SkipListNode<K>* node = m_head;
+	SkipListNode<K>* lowerBound = nullptr;
+
+	std::uint8_t level = m_maxNodeHeight;
+	while (level-- > 0) {
+		node = node->getNext(level);
+		if (node != nullptr) {
+			node->readLock();
+		}
+
+		while ((node != nullptr) && (key > node->getKey())) {
+			trail->readUnlock();
+			trail = node;
+
+			node = node->getNext(level);
+			if (node != nullptr) {
+				node->readLock();
+			}
+		}
+		assert(trail != nullptr);
+
+		if ((node != nullptr) && (key == node->getKey())) {
+			lowerBound = node;
+			break;
+		}
+		assert((node == nullptr) || (key < node->getKey()));
+
+		if (level == 0) {
+			lowerBound = node;
+			break;
+		}
+
+		if (node != nullptr) {
+			node->readUnlock();
+		}
+		node = trail;
+	}
+
+	trail->readUnlock();
+	if (node != nullptr) {
+		node->readUnlock();
+	}
+
+	return lowerBound;
 }
 
 template<typename K>

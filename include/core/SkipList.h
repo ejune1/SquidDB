@@ -87,7 +87,10 @@ class SkipList : public engine::Index {
 		// test support
 		bool validate() const;
 
+		friend class SkipListIterator<K>;
+
 	private:
+		SkipListNode<K>* lowerBound(const K key) const;
 		SkipListNode<K>* findNode(const K key) const;
 		TraverseContext<K>* traversePrevNodes(
 			const K key, 
