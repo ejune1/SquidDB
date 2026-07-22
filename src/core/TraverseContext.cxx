@@ -38,6 +38,11 @@ std::uint8_t TraverseContext<K>::getSize() const {
 }
 
 template<typename K>
+bool TraverseContext<K>::containsNode(SkipListNode<K>* node) const {
+	return (m_lockNodes.count(node) > 0);
+}
+
+template<typename K>
 SkipListNode<K>* TraverseContext<K>::getPrevNode(const std::uint8_t index) const {
 	assert(index < m_size);
 	return m_prevNode[index];

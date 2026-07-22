@@ -57,6 +57,9 @@ TEST_CASE("10000 insert test", "[insert]") {
 
 	delete it;
 
+	std::size_t memoryUsageMB = table1.memoryUsageMB();
+	REQUIRE(memoryUsageMB > 0);
+
 	table1.shutdown();
 	logger.stop();
 }

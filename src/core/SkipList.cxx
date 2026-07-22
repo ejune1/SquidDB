@@ -174,6 +174,7 @@ bool SkipList<K>::insert(const K key, std::byte* data, const std::uint16_t size,
 			SkipListNode<K>* prev = traverseContext->getPrevNode(level);
 			SkipListNode<K>* next = prev->getNext(level);
 
+			// I dont want to lock next here just for the asserts
 			assert((prev == m_head) || (key > prev->getKey()));
 			assert((next == nullptr) || (key <= next->getKey()));
 
@@ -244,6 +245,7 @@ bool SkipList<K>::remove(const K key, Transaction* transaction) {
 		return false;
 	}
 
+	// TODO next (the remove node) needs to be locked during the traverse (before the retry)
 	if (transaction != nullptr) {
 		SkipListNode<K>* nextLevel0 = traverseContext->getPrevNode(0 /* level */)->getNext(0 /* level */);
 		nextLevel0->writeLock();
@@ -272,15 +274,16 @@ bool SkipList<K>::remove(const K key, Transaction* transaction) {
 		while (level-- > 0) {
 			SkipListNode<K>* prev = traverseContext->getPrevNode(level);
 			SkipListNode<K>* next = prev->getNext(level);
+			if (next != nullptr) {
+				next->writeLock();
+			}
 
 			assert((prev == m_head) || (key > prev->getKey()));
 			assert((next == nullptr) || (key <= next->getKey()));
 
 			if ((next != nullptr) && (key == next->getKey())) {
 				assert((removeNode == nullptr) || (removeNode == next));
-
 				removeNode = next;
-				removeNode->writeLock();
 
 				size_t prevWidth = (prev->getWidth(level) + removeNode->getWidth(level)) - 1;
 
@@ -292,6 +295,10 @@ bool SkipList<K>::remove(const K key, Transaction* transaction) {
 			} else {
 				//decrement width for all levels above remove node's height
 				prev->setWidth(level, prev->getWidth(level) - 1);
+
+				if (next != nullptr) {
+					next->writeUnlock();
+				}
 			}
 		}
 		assert(removeNode != nullptr);
@@ -464,7 +471,11 @@ SkipListIterator<K> SkipList<K>::begin(Transaction* transaction) const {
 		throw std::runtime_error("SkipList<K>::begin not initialized");
 	}
 
-	return SkipListIterator<K>(m_head->getNext(0 /* level */), std::nullopt, transaction);
+	m_head->readLock();
+	SkipListNode<K>* next = m_head->getNext(0 /* level */);
+	m_head->readUnlock();
+
+	return SkipListIterator<K>(next, std::nullopt, transaction);
 }
 
 template<typename K>
@@ -474,16 +485,26 @@ SkipListIterator<K> SkipList<K>::seek(const K key, const std::optional<K> endKey
 	}
 
 	SkipListNode<K>* trail = m_head;
+	trail->readLock();
+
 	SkipListNode<K>* node = m_head;
 	SkipListNode<K>* lowerBound = nullptr;
 
 	std::uint8_t level = m_maxNodeHeight;
 	while (level-- > 0) {
 		node = node->getNext(level);
+		if (node != nullptr) {
+			node->readLock();
+		}
 
 		while ((node != nullptr) && (key > node->getKey())) {
+			trail->readUnlock();
 			trail = node;
+
 			node = node->getNext(level);
+			if (node != nullptr) {
+				node->readLock();
+			}
 		}
 		assert(trail != nullptr);
 
@@ -498,7 +519,15 @@ SkipListIterator<K> SkipList<K>::seek(const K key, const std::optional<K> endKey
 			break;
 		}
 
+		if (node != nullptr) {
+			node->readUnlock();
+		}
 		node = trail;
+	}
+
+	trail->readUnlock();
+	if (node != nullptr) {
+		node->readUnlock();
 	}
 
 	return SkipListIterator<K>(lowerBound, endKey, transaction);
@@ -530,11 +559,19 @@ size_t SkipList<K>::size(const bool calculate) const {
 
 	if (calculate == true) {
 		size_t size = 0;
+
+		m_head->readLock();
 		SkipListNode<K>* node = m_head->getNext(0);
+		m_head->readUnlock();
 
 		while (node != nullptr) {
 			size++;
-			node = node->getNext(0);
+
+			node->readLock();
+			SkipListNode<K>* next = node->getNext(0);
+			node->readUnlock();
+
+			node = next;
 		}
 
 		return size;
@@ -558,7 +595,10 @@ size_t SkipList<K>::estimateRangeCardinality(const K lowKey, const K highKey) co
 	// TODO transactions
 	bool duplicateKey = false;
 	TraverseContext<K>* traverseContextLow = traversePrevNodes(lowKey, duplicateKey);
+	traverseContextLow->unlockAll();
+
 	TraverseContext<K>* traverseContextHigh = traversePrevNodes(highKey, duplicateKey);
+	traverseContextHigh->unlockAll();
 	
 	size_t lowRank = traverseContextLow->getPrevRank(0 /* level index */);
 	size_t highRank = traverseContextHigh->getPrevRank(0 /* level index */);
@@ -579,7 +619,10 @@ size_t SkipList<K>::memoryUsageMB() const {
 	size_t totalBytes = 0;
 
 	SkipListNode<K>* node = m_head;
+
 	while (node != nullptr) {
+		node->readLock();
+
 		std::uint8_t nodeHeight = node->getHeight();
 		// the node itself
 		totalBytes += sizeof(SkipListNode<K>);
@@ -599,7 +642,9 @@ size_t SkipList<K>::memoryUsageMB() const {
 			rowInfo = rowInfo->getNext();
 		}
 
-		node = node->getNext(0 /* level */);
+		SkipListNode<K>* next = node->getNext(0 /* level */);
+		node->readUnlock();
+		node = next;
 	}
 
 	return totalBytes / (1024 * 1024);
@@ -630,7 +675,11 @@ bool SkipList<K>::updateRow(const void* key, void* row, const std::uint16_t size
 
 template<typename K>
 engine::TableIterator* SkipList<K>::scan(Transaction* transaction) const {
-	SkipListIterator<K>* tableIterator = new SkipListIterator<K>(m_head->getNext(0 /* level */), std::nullopt, transaction);
+	m_head->readLock();
+	SkipListNode<K>* next = m_head->getNext(0 /* level */);
+	m_head->readUnlock();
+
+	SkipListIterator<K>* tableIterator = new SkipListIterator<K>(next, std::nullopt, transaction);
 	return tableIterator;
 }
 
@@ -650,26 +699,42 @@ SkipListNode<K>* SkipList<K>::findNode(const K key) const {
 	}
 
 	SkipListNode<K>* trail = m_head;
+	trail->readLock();
+
 	SkipListNode<K>* node = m_head;
 
 	std::uint8_t level = m_maxNodeHeight;
 	while (level-- > 0) {
 		node = node->getNext(level);
+		if (node != nullptr) {
+			node->readLock();
+		}
 
 		while ((node != nullptr) && (key > node->getKey())) {
+			trail->readUnlock();			
 			trail = node;
+
 			node = node->getNext(level);
+			if (node != nullptr) {
+				node->readLock();
+			}
 		}
 		assert(trail != nullptr);
 
 		if ((node != nullptr) && (key == node->getKey())) {
+			trail->readUnlock();
+			node->readUnlock();
 			return node;
 		}
 		assert((node == nullptr) || (key < node->getKey()));
 
+		if (node != nullptr) {
+			node->readUnlock();
+		}
 		node = trail;
 	}
 
+	trail->readUnlock();
 	return nullptr;
 }
 
@@ -682,6 +747,8 @@ TraverseContext<K>* SkipList<K>::traversePrevNodes(const K key, bool& duplicateK
 	TraverseContext<K>* traverseContext = new TraverseContext<K>(m_maxNodeHeight, lockType);
 
 	SkipListNode<K>* trail = m_head;
+	trail->readLock();
+
 	SkipListNode<K>* node = m_head;
 
 	size_t accumulatedRank = 0;
@@ -690,11 +757,23 @@ TraverseContext<K>* SkipList<K>::traversePrevNodes(const K key, bool& duplicateK
 	while (level-- > 0) {
 		node = node->getNext(level);
 
+		if ((node != nullptr) && (traverseContext->containsNode(node) == false)) {
+			node->readLock();
+		}
+
 		while ((node != nullptr) && (key > node->getKey())) {
 			accumulatedRank += trail->getWidth(level);
 
+			if (traverseContext->containsNode(trail) == false) {
+				trail->readUnlock();
+			}
+
 			trail = node;
 			node = node->getNext(level);
+
+			if ((node != nullptr) && (traverseContext->containsNode(node) == false)) {
+				node->readLock();
+			}
 		}
 		assert(trail != nullptr);
 
@@ -707,6 +786,14 @@ TraverseContext<K>* SkipList<K>::traversePrevNodes(const K key, bool& duplicateK
 					duplicateKey = true;
 				}
 			}
+		}
+
+		assert(trail != node);
+		if (traverseContext->containsNode(trail) == false) {
+			trail->readUnlock();
+		}
+		if ((node != nullptr) && (traverseContext->containsNode(node) == false)) {
+			node->readUnlock();
 		}
 
 		traverseContext->setPrevNode(level, trail);

@@ -18,6 +18,7 @@ class TraverseContext {
 
 		std::uint8_t getSize() const;
 
+		bool containsNode(SkipListNode<K>* node) const;
 		SkipListNode<K>* getPrevNode(const std::uint8_t index) const;
 		void setPrevNode(const std::uint8_t index, SkipListNode<K>* prevNode);
 
